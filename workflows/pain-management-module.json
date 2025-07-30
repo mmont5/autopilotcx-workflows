@@ -1,0 +1,22 @@
+{
+  "name": "Pain Management Module",
+  "nodes": [
+    {
+      "parameters": {
+        "medicalData": "=return [{\n  response: 'Thank you for your question. For clinical or medical inquiries, a qualified specialist will review your message and respond as soon as possible. If this is urgent, please call our office directly or seek immediate care.'\n}];"
+      },
+      "type": "CUSTOM.clinicalNode",
+      "typeVersion": 1,
+      "position": [2600, -940],
+      "name": "ClinicalNode"
+    }
+  ],
+  "connections": {
+    "ClinicalNode": {
+      "main": [[{"node": "HumanAgent", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+} 

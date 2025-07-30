@@ -1,0 +1,397 @@
+openapi: 3.0.0
+info:
+  title: Megarray Video Upscale API
+  description: API for ESRGAN 4K video upscaling
+  version: 1.0.0
+  contact:
+    name: Megarray Support
+    email: support@megarray.ai
+    url: https://megarray.ai/support
+
+servers:
+  - url: http://localhost:8550
+    description: Local development server
+  - url: https://api.megarray.ai/upscale
+    description: Production server
+
+security:
+  - BearerAuth: []
+  - ApiKeyAuth: []
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        detail:
+          type: string
+          description: Error message
+        code:
+          type: string
+          description: Error code
+        timestamp:
+          type: string
+          format: date-time
+          description: When the error occurred
+
+    UpscaleJob:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Upscale job ID
+        input_url:
+          type: string
+          format: uri
+          description: Input video URL
+        output_url:
+          type: string
+          format: uri
+          description: Output video URL
+        thumbnail_url:
+          type: string
+          format: uri
+          description: Thumbnail URL
+        input_width:
+          type: integer
+          description: Input video width
+        input_height:
+          type: integer
+          description: Input video height
+        output_width:
+          type: integer
+          description: Output video width
+        output_height:
+          type: integer
+          description: Output video height
+        status:
+          type: string
+          enum: [pending, processing, completed, failed]
+          description: Job status
+        created_at:
+          type: string
+          format: date-time
+          description: When the job was created
+        completed_at:
+          type: string
+          format: date-time
+          description: When the job was completed
+        metadata:
+          type: object
+          properties:
+            team_id:
+              type: string
+              description: Team ID
+            user_id:
+              type: string
+              description: User ID
+            session_id:
+              type: string
+              description: Session ID
+            model:
+              type: string
+              description: Model used
+            processing_time:
+              type: number
+              format: float
+              description: Processing time in seconds
+            error:
+              type: string
+              description: Error message if failed
+
+    UpscaleRequest:
+      type: object
+      required:
+        - input_url
+      properties:
+        input_url:
+          type: string
+          format: uri
+          description: Input video URL
+        output_width:
+          type: integer
+          default: 3840
+          enum: [1920, 2560, 3840]
+          description: Output video width
+        output_height:
+          type: integer
+          default: 2160
+          enum: [1080, 1440, 2160]
+          description: Output video height
+        model:
+          type: string
+          default: esrgan-4x
+          enum: [esrgan-4x, esrgan-2x, real-esrgan]
+          description: Model to use
+        metadata:
+          type: object
+          properties:
+            team_id:
+              type: string
+              description: Team ID
+            user_id:
+              type: string
+              description: User ID
+            session_id:
+              type: string
+              description: Session ID
+
+    UpscaleBatchRequest:
+      type: object
+      required:
+        - requests
+      properties:
+        requests:
+          type: array
+          items:
+            $ref: '#/components/schemas/UpscaleRequest'
+          description: List of upscale requests
+
+    UpscaleBatchResponse:
+      type: object
+      properties:
+        jobs:
+          type: array
+          items:
+            $ref: '#/components/schemas/UpscaleJob'
+          description: List of upscale jobs
+
+paths:
+  /v1/upscale:
+    post:
+      summary: Create upscale job
+      description: Create a new video upscale job
+      operationId: createUpscaleJob
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpscaleRequest'
+      responses:
+        '201':
+          description: Upscale job created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpscaleJob'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/upscale/batch:
+    post:
+      summary: Create batch upscale jobs
+      description: Create multiple upscale jobs in one request
+      operationId: createBatchUpscaleJobs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpscaleBatchRequest'
+      responses:
+        '201':
+          description: Upscale jobs created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpscaleBatchResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/upscale/{job_id}:
+    get:
+      summary: Get upscale job
+      description: Get details of a specific upscale job
+      operationId: getUpscaleJob
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Upscale job retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpscaleJob'
+        '404':
+          description: Upscale job not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/models:
+    get:
+      summary: List models
+      description: Get list of available upscale models
+      operationId: listModels
+      responses:
+        '200':
+          description: Models retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  models:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          description: Model ID
+                        name:
+                          type: string
+                          description: Model name
+                        description:
+                          type: string
+                          description: Model description
+                        scale_factor:
+                          type: integer
+                          description: Scale factor
+                        supported_resolutions:
+                          type: array
+                          items:
+                            type: string
+                          description: Supported output resolutions
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /health:
+    get:
+      summary: Health check
+      description: Check the health status of the upscale service
+      operationId: checkHealth
+      responses:
+        '200':
+          description: Upscale service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+                  version:
+                    type: string
+                  uptime:
+                    type: number
+                    format: float
+                  memory_usage:
+                    type: number
+                    format: float
+                    description: Memory usage in MB
+                  gpu_usage:
+                    type: number
+                    format: float
+                    description: GPU usage percentage
+                  metrics:
+                    type: object
+                    properties:
+                      total_requests:
+                        type: integer
+                        description: Total number of requests
+                      total_jobs:
+                        type: integer
+                        description: Total number of jobs
+                      active_jobs:
+                        type: integer
+                        description: Number of active jobs
+                      average_latency:
+                        type: number
+                        format: float
+                        description: Average response time in ms
+                      error_rate:
+                        type: number
+                        format: float
+                        description: Error rate percentage
+                      model_distribution:
+                        type: object
+                        properties:
+                          esrgan_4x:
+                            type: integer
+                            description: Number of ESRGAN 4x jobs
+                          esrgan_2x:
+                            type: integer
+                            description: Number of ESRGAN 2x jobs
+                          real_esrgan:
+                            type: integer
+                            description: Number of Real-ESRGAN jobs
+                      resolution_distribution:
+                        type: object
+                        properties:
+                          "1080p":
+                            type: integer
+                            description: Number of 1080p outputs
+                          "1440p":
+                            type: integer
+                            description: Number of 1440p outputs
+                          "2160p":
+                            type: integer
+                            description: Number of 2160p outputs
+        '503':
+          description: Upscale service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error' 

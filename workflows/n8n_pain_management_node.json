@@ -1,0 +1,57 @@
+{
+  "name": "Pain Management Enrichment Node",
+  "nodes": [
+    {
+      "parameters": {
+        "command": "python3 scripts/extract_pain_management.py /tmp/drhassan_site.json /tmp/drhassan_structured.json"
+      },
+      "name": "Extract Pain Management Data",
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [400, 300]
+    },
+    {
+      "parameters": {
+        "filePath": "/tmp/drhassan_structured.json",
+        "options": {}
+      },
+      "name": "Read Structured Data",
+      "type": "n8n-nodes-base.readBinaryFile",
+      "typeVersion": 1,
+      "position": [600, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Parse JSON and pass to next node\nconst data = JSON.parse(Buffer.from(items[0].binary.data.data).toString('utf8'));\nreturn [{ json: data }];"
+      },
+      "name": "Parse Structured JSON",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [800, 300]
+    }
+  ],
+  "connections": {
+    "Extract Pain Management Data": {
+      "main": [
+        [
+          {
+            "node": "Read Structured Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Structured Data": {
+      "main": [
+        [
+          {
+            "node": "Parse Structured JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+} 

@@ -1,0 +1,129 @@
+{
+  "name": "Pain Management Specialization Add-on",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "analyzePainInquiry",
+        "inquiryData": "={{ $json.body }}",
+        "specialization": "pain_management",
+        "triggers": {
+          "emergency": ["severe", "acute", "sudden"],
+          "routine": ["chronic", "follow-up", "consultation"],
+          "referral": ["specialist", "second opinion"]
+        }
+      },
+      "name": "Pain Analysis Agent",
+      "type": "autopilotcx-nodes.specializedAgent",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "routeInquiry",
+        "analysisResult": "={{ $json.analysis }}",
+        "routingRules": {
+          "emergency": "immediate_human",
+          "routine": "scheduler",
+          "referral": "referral_coordinator"
+        }
+      },
+      "name": "Pain Routing Agent",
+      "type": "autopilotcx-nodes.specializedAgent",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "operation": "schedulePainConsultation",
+        "clientId": "={{ $json.body.clientId }}",
+        "consultationType": "={{ $json.analysis.consultationType }}",
+        "duration": "={{ $json.analysis.estimatedDuration }}",
+        "preferences": {
+          "location": "={{ $json.body.preferredLocation }}",
+          "time": "={{ $json.body.preferredTime }}"
+        }
+      },
+      "name": "Pain Consultation Scheduler",
+      "type": "autopilotcx-nodes.specializedAgent",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "operation": "prepareConsultation",
+        "consultationData": "={{ $json.consultation }}",
+        "requirements": {
+          "forms": ["pain_assessment", "medical_history"],
+          "documents": ["insurance", "referral"],
+          "preparation": ["fasting", "medication_list"]
+        }
+      },
+      "name": "Consultation Prep Agent",
+      "type": "autopilotcx-nodes.specializedAgent",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "operation": "sendPainInstructions",
+        "clientId": "={{ $json.body.clientId }}",
+        "instructionType": "pre_consultation",
+        "channels": ["email", "sms"],
+        "content": {
+          "preparation": "={{ $json.preparation.instructions }}",
+          "what_to_bring": "={{ $json.preparation.required_items }}",
+          "location_info": "={{ $json.consultation.location_details }}"
+        }
+      },
+      "name": "Instruction Agent",
+      "type": "autopilotcx-nodes.specializedAgent",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "operation": "trackPainMetrics",
+        "practiceId": "={{ $json.body.practiceId }}",
+        "metrics": [
+          "consultation_types",
+          "emergency_routes",
+          "referral_patterns",
+          "satisfaction_scores"
+        ]
+      },
+      "name": "Pain Analytics Agent",
+      "type": "autopilotcx-nodes.specializedAgent",
+      "typeVersion": 1,
+      "position": [1250, 300]
+    }
+  ],
+  "connections": {
+    "Pain Analysis Agent": {
+      "main": [[{"node": "Pain Routing Agent", "type": "main", "index": 0}]]
+    },
+    "Pain Routing Agent": {
+      "main": [[{"node": "Pain Consultation Scheduler", "type": "main", "index": 0}]]
+    },
+    "Pain Consultation Scheduler": {
+      "main": [[{"node": "Consultation Prep Agent", "type": "main", "index": 0}]]
+    },
+    "Consultation Prep Agent": {
+      "main": [[{"node": "Instruction Agent", "type": "main", "index": 0}]]
+    },
+    "Instruction Agent": {
+      "main": [[{"node": "Pain Analytics Agent", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "metadata": {
+    "specialization": "pain_management",
+    "version": "1.0.0",
+    "compatibleWith": ["demo", "full"],
+    "integrationPoints": {
+      "demo": ["Demo Intake Webhook", "Maestro Agent"],
+      "full": ["Lead Intake Webhook", "Maestro Agent"]
+    }
+  }
+} 

@@ -1,0 +1,266 @@
+{
+  "name": "Basic Healthcare Template",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "demo-intake",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [400, -640],
+      "name": "Webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Example: Normalize and parse fields\nconst requiredFields = ['user_name', 'contact', 'preferred_time'];\nlet missingFields = requiredFields.filter(field => !$json[field]);\nif (missingFields.length > 0) {\n  return [{\n    json: {\n      ...$json,\n      agent_response: `To book your appointment, I need: ${missingFields.join(', ')}. Please provide this information.`\n    }\n  }];\n}\n// Parse locations, specialists, etc.\nconst parseOrDefault = (field, def = []) => {\n  if (!$json[field]) return def;\n  if (typeof $json[field] === 'string') { try { return JSON.parse($json[field]); } catch { return def; } }\n  if (Array.isArray($json[field])) return $json[field];\n  return def;\n};\n$json.locations = parseOrDefault('locations');\n$json.specialists = parseOrDefault('specialists');\n$json.authoritative_sites = parseOrDefault('authoritative_sites');\n$json.important_sites = parseOrDefault('important_sites');\nreturn { json: $json };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [620, -640],
+      "name": "Initial Processing"
+    },
+    {
+      "parameters": {
+        "jsCode": "let locations = $json.body.locations;\nif (typeof locations === 'string') { locations = JSON.parse(locations); }\nconst loc = locations[0];\nconst addressParts = [loc.address1, loc.address2 && loc.address2.trim() !== '' ? loc.address2 : null, loc.city, loc.state + ' ' + loc.zip].filter(Boolean);\nreturn { json: { ...$json, formatted_address: addressParts.join(', ') } };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [840, -640],
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "url": "https://maps.googleapis.com/maps/api/place/findplacefromtext/json",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "input", "value": "={{$json['company_name']}}: Shady Hassan, MD, {{$json['locations'][0].address1}}, {{$json['locations'][0].address2}}, {{$json['locations'][0].city}}, {{$json['locations'][0].state}} {{$json['locations'][0].zip}}" },
+            { "name": "inputtype", "value": "textquery" },
+            { "name": "fields", "value": "place_id" },
+            { "name": "key", "value": "YOUR_GOOGLE_API_KEY" }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1060, -640],
+      "name": "Find Place ID"
+    },
+    {
+      "parameters": {
+        "url": "https://maps.googleapis.com/maps/api/place/details/json",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "place_id", "value": "={{$node['Find Place ID'].json['candidates'][0]['place_id']}}" },
+            { "name": "fields", "value": "name,formatted_address,opening_hours,url" },
+            { "name": "key", "value": "YOUR_GOOGLE_API_KEY" }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1280, -640],
+      "name": "Get Place Details"
+    },
+    {
+      "parameters": {
+        "jsCode": "const mainData = $items('Initial Processing')[0]?.json || {};\nconst googleData = $json?.result || {};\nmainData.google_place = googleData;\nreturn { json: mainData };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1500, -640],
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "onboardingData": "=return [{ response: `Hello and welcome to {{$json.company_name || 'Hassan Spine & Sports Medicine'}}! My name is Sarah, and I'll be your virtual assistant today. We're passionate about {{$json.category ? $json.category.toLowerCase() : 'pain management and sports medicine'}}, and we're glad you're here. How can I help make things easier for you today?` }];"
+      },
+      "type": "CUSTOM.preludeNode",
+      "typeVersion": 1,
+      "position": [1720, -640],
+      "name": "PreludeNode"
+    },
+    {
+      "parameters": {
+        "jsCode": "const processedData = $input.item.json; const status = { ...processedData, status: 'SUCCESS' }; return { json: status };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1940, -640],
+      "name": "Supabase Update"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://twtxouksqmgexkfwmlub.supabase.co/rest/v1/demo?id=eq.{{$node['Webhook'].json['body']['id']}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "YOUR_SUPABASE_API_KEY" },
+            { "name": "Authorization", "value": "Bearer YOUR_SUPABASE_API_KEY" },
+            { "name": "Prefer", "value": "return=representation" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "logourl", "value": "test-logo" },
+            { "name": "tagline", "value": "test-tagline" },
+            { "name": "specialists", "value": "test-specialists" },
+            { "name": "updated_at", "value": "2025-05-18T23:52:24.409Z" }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2160, -640],
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            { "conditions": { "conditions": [{ "leftValue": "intent", "rightValue": "appointment", "operator": { "type": "string", "operation": "equals" } }], "combinator": "and", "options": { "caseSensitive": true, "typeValidation": "strict", "version": 2 } }, "renameOutput": true, "outputKey": "Booking Node" },
+            { "conditions": { "conditions": [{ "leftValue": "intent", "rightValue": "clinical", "operator": { "type": "string", "operation": "equals" } }], "combinator": "and", "options": { "caseSensitive": true, "typeValidation": "strict", "version": 2 } }, "renameOutput": true, "outputKey": "Clinical Node" },
+            { "conditions": { "conditions": [{ "leftValue": "intent", "rightValue": "escalate", "operator": { "type": "string", "operation": "equals" } }], "combinator": "and", "options": { "caseSensitive": true, "typeValidation": "strict", "version": 2 } }, "renameOutput": true, "outputKey": "Human Agent" },
+            { "conditions": { "conditions": [{ "leftValue": "intent", "rightValue": "billing", "operator": { "type": "string", "operation": "equals" } }], "combinator": "and", "options": { "caseSensitive": true, "typeValidation": "strict", "version": 2 } }, "renameOutput": true, "outputKey": "Score Node" },
+            { "conditions": { "conditions": [{ "leftValue": "intent", "rightValue": "feedback", "operator": { "type": "string", "operation": "equals" } }], "combinator": "and", "options": { "caseSensitive": true, "typeValidation": "strict", "version": 2 } }, "renameOutput": true, "outputKey": "Feedback Node" },
+            { "conditions": { "conditions": [{ "leftValue": "intent", "rightValue": "general", "operator": { "type": "string", "operation": "equals" } }], "combinator": "and", "options": { "caseSensitive": true, "typeValidation": "strict", "version": 2 } }, "renameOutput": true, "outputKey": "Virtuoso/Composer Agent" }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [2380, -703],
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Booking logic, show available slots\nconst availableSlots = [\"2024-05-21 10:00 AM\",\"2024-05-21 2:00 PM\",\"2024-05-22 11:00 AM\"];\nreturn [{ json: { ...$json, agent_response: `Great! Here are available slots: ${availableSlots.join(', ')}. Please reply with your preferred slot.` } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2600, -1140],
+      "name": "Booking Node"
+    },
+    {
+      "parameters": {
+        "jsCode": "const start = new Date($json.selected_slot); const end = new Date(start.getTime() + 60 * 60000); return [{ ...$json, selected_slot_end: end.toISOString() }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2820, -1140],
+      "name": "Date & Time"
+    },
+    {
+      "parameters": {
+        "calendar": { "__rl": true, "value": "mmont5@gmail.com", "mode": "list", "cachedResultName": "mmont5@gmail.com" },
+        "start": "={{$json.selected_slot}}",
+        "end": "={{$json.end_slot}}",
+        "additionalFields": {
+          "attendees": [],
+          "description": "=  Patient Name: {{$json.patient_name}}\n  Email: {{$json.contact_email}}\n  Phone: {{$json.contact_phone}}\n  Reason: {{$json.reason}}\n  Notes: {{$json.notes}}",
+          "summary": "=Appointment: {{$json.patient_name}}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [3040, -1140],
+      "name": "Google Calendar"
+    },
+    {
+      "parameters": {
+        "operation": "notify",
+        "notificationData": "={{$json.contact_email}}"
+      },
+      "type": "CUSTOM.reminderNode",
+      "typeVersion": 1,
+      "position": [3260, -1140],
+      "name": "ReminderNode"
+    },
+    {
+      "parameters": {
+        "feedbackData": "={{ 'Thank you for your feedback! We value your input and will use it to improve our services.' }}"
+      },
+      "type": "CUSTOM.feedbackNode",
+      "typeVersion": 1,
+      "position": [2600, -440],
+      "name": "FeedbackNode"
+    },
+    {
+      "parameters": {
+        "interactionData": "=return [{ response: 'Hi there! How can I assist you today? I'm here to help with any questions or support you need.' }];"
+      },
+      "type": "CUSTOM.virtuosoAgent",
+      "typeVersion": 1,
+      "position": [2600, -240],
+      "name": "VirtuosoAgent2"
+    },
+    {
+      "parameters": {
+        "contentData": "=return [{ response: 'I can help you with information, resources, or crafting the perfect message. What would you like to do next?' }];"
+      },
+      "type": "CUSTOM.composerAgent",
+      "typeVersion": 1,
+      "position": [2600, -40],
+      "name": "ComposerAgent"
+    },
+    {
+      "parameters": {
+        "operation": "transfer",
+        "transferData": "=return [{ response: 'Your request is being transferred to a human specialist. Please hold on, and someone from our team will assist you shortly.' }];"
+      },
+      "type": "CUSTOM.humanAgent",
+      "typeVersion": 1,
+      "position": [2820, -865],
+      "name": "HumanAgent"
+    },
+    {
+      "parameters": {
+        "billingData": "=Demo billing processed for ${{$json.amount}} ({{$json.patient_name}}, Reason: {{$json.reason}})"
+      },
+      "type": "CUSTOM.scoreNode",
+      "typeVersion": 1,
+      "position": [2600, -640],
+      "name": "ScoreNode"
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{"node": "Initial Processing", "type": "main", "index": 0}]] },
+    "Initial Processing": { "main": [[{"node": "Code1", "type": "main", "index": 0}]] },
+    "Code1": { "main": [[{"node": "Find Place ID", "type": "main", "index": 0}]] },
+    "Find Place ID": { "main": [[{"node": "Get Place Details", "type": "main", "index": 0}]] },
+    "Get Place Details": { "main": [[{"node": "Code", "type": "main", "index": 0}]] },
+    "Code": { "main": [[{"node": "PreludeNode", "type": "main", "index": 0}]] },
+    "PreludeNode": { "main": [[{"node": "Supabase Update", "type": "main", "index": 0}]] },
+    "Supabase Update": { "main": [[{"node": "HTTP Request", "type": "main", "index": 0}]] },
+    "HTTP Request": { "main": [[{"node": "Switch", "type": "main", "index": 0}]] },
+    "Switch": {
+      "main": [
+        [{"node": "Booking Node", "type": "main", "index": 0}],
+        [{"node": "ClinicalNode", "type": "main", "index": 0}],
+        [{"node": "HumanAgent", "type": "main", "index": 0}],
+        [{"node": "ScoreNode", "type": "main", "index": 0}],
+        [{"node": "FeedbackNode", "type": "main", "index": 0}],
+        [
+          {"node": "VirtuosoAgent2", "type": "main", "index": 0},
+          {"node": "ComposerAgent", "type": "main", "index": 0}
+        ]
+      ]
+    },
+    "Booking Node": { "main": [[{"node": "Date & Time", "type": "main", "index": 0}]] },
+    "Date & Time": { "main": [[{"node": "Google Calendar", "type": "main", "index": 0}]] },
+    "Google Calendar": { "main": [[{"node": "ReminderNode", "type": "main", "index": 0}]] },
+    "ReminderNode": { "main": [[]] },
+    "ClinicalNode": { "main": [[{"node": "HumanAgent", "type": "main", "index": 0}]] },
+    "ScoreNode": { "main": [[]] }
+  },
+  "settings": { "executionOrder": "v1" }
+} 

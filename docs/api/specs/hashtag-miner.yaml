@@ -1,0 +1,353 @@
+openapi: 3.0.0
+info:
+  title: Megarray Hashtag Miner API
+  description: API for hashtag research and analysis using snscrape and RiteTag
+  version: 1.0.0
+  contact:
+    name: Megarray Support
+    email: support@megarray.ai
+    url: https://megarray.ai/support
+
+servers:
+  - url: http://localhost:8710
+    description: Local development server
+  - url: https://api.megarray.ai/hashtags
+    description: Production server
+
+security:
+  - BearerAuth: []
+  - ApiKeyAuth: []
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        detail:
+          type: string
+          description: Error message
+        code:
+          type: string
+          description: Error code
+        timestamp:
+          type: string
+          format: date-time
+          description: When the error occurred
+
+    HashtagData:
+      type: object
+      properties:
+        hashtag:
+          type: string
+          description: The hashtag being analyzed
+        post_count:
+          type: integer
+          description: Number of posts using this hashtag
+        engagement_rate:
+          type: number
+          format: float
+          description: Average engagement rate
+        trend_score:
+          type: number
+          format: float
+          description: Trend score (0-100)
+        related_hashtags:
+          type: array
+          items:
+            type: object
+            properties:
+              hashtag:
+                type: string
+              relevance:
+                type: number
+                format: float
+          description: Related hashtags with relevance scores
+        platform_data:
+          type: object
+          properties:
+            twitter:
+              type: object
+              properties:
+                volume:
+                  type: integer
+                sentiment:
+                  type: number
+                  format: float
+            instagram:
+              type: object
+              properties:
+                volume:
+                  type: integer
+                sentiment:
+                  type: number
+                  format: float
+            tiktok:
+              type: object
+              properties:
+                volume:
+                  type: integer
+                sentiment:
+                  type: number
+                  format: float
+        metadata:
+          type: object
+          properties:
+            team_id:
+              type: string
+              description: Team ID
+            user_id:
+              type: string
+              description: User ID
+            session_id:
+              type: string
+              description: Session ID
+            category:
+              type: string
+              description: Content category
+            language:
+              type: string
+              description: Language code
+
+    HashtagRequest:
+      type: object
+      required:
+        - hashtags
+      properties:
+        hashtags:
+          type: array
+          items:
+            type: string
+          description: List of hashtags to analyze
+        platforms:
+          type: array
+          items:
+            type: string
+            enum: [twitter, instagram, tiktok]
+          default: [twitter, instagram, tiktok]
+          description: Social platforms to analyze
+        timeframe:
+          type: string
+          default: "7d"
+          description: Time period for analysis
+        category:
+          type: string
+          description: Content category
+        metadata:
+          type: object
+          properties:
+            team_id:
+              type: string
+              description: Team ID
+            user_id:
+              type: string
+              description: User ID
+            session_id:
+              type: string
+              description: Session ID
+
+    HashtagResponse:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/HashtagData'
+          description: List of hashtag analysis results
+        metadata:
+          type: object
+          properties:
+            total_hashtags:
+              type: integer
+              description: Total number of hashtags analyzed
+            average_engagement:
+              type: number
+              format: float
+              description: Average engagement rate
+            processing_time:
+              type: number
+              format: float
+              description: Processing time in seconds
+
+paths:
+  /v1/hashtags:
+    post:
+      summary: Analyze hashtags
+      description: Analyze hashtags for engagement and trends
+      operationId: analyzeHashtags
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HashtagRequest'
+      responses:
+        '200':
+          description: Hashtags analyzed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HashtagResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/hashtags/trends:
+    get:
+      summary: Get hashtag trends
+      description: Get trending hashtags by platform
+      operationId: getTrendingHashtags
+      parameters:
+        - name: platform
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [twitter, instagram, tiktok]
+          description: Social platform
+        - name: category
+          in: query
+          schema:
+            type: string
+          description: Content category
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+          description: Number of hashtags to return
+      responses:
+        '200':
+          description: Trends retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  trends:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        hashtag:
+                          type: string
+                        volume:
+                          type: integer
+                        trend_score:
+                          type: number
+                          format: float
+                        category:
+                          type: string
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /health:
+    get:
+      summary: Health check
+      description: Check the health status of the hashtag miner service
+      operationId: checkHealth
+      responses:
+        '200':
+          description: Hashtag miner service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+                  version:
+                    type: string
+                  uptime:
+                    type: number
+                    format: float
+                  memory_usage:
+                    type: number
+                    format: float
+                    description: Memory usage in MB
+                  metrics:
+                    type: object
+                    properties:
+                      total_requests:
+                        type: integer
+                        description: Total number of requests
+                      total_hashtags:
+                        type: integer
+                        description: Total number of hashtags analyzed
+                      average_latency:
+                        type: number
+                        format: float
+                        description: Average response time in ms
+                      error_rate:
+                        type: number
+                        format: float
+                        description: Error rate percentage
+                      platform_distribution:
+                        type: object
+                        properties:
+                          twitter:
+                            type: integer
+                            description: Number of Twitter analyses
+                          instagram:
+                            type: integer
+                            description: Number of Instagram analyses
+                          tiktok:
+                            type: integer
+                            description: Number of TikTok analyses
+                      category_distribution:
+                        type: object
+                        properties:
+                          business:
+                            type: integer
+                            description: Number of business hashtags
+                          lifestyle:
+                            type: integer
+                            description: Number of lifestyle hashtags
+                          entertainment:
+                            type: integer
+                            description: Number of entertainment hashtags
+                          education:
+                            type: integer
+                            description: Number of education hashtags
+        '503':
+          description: Hashtag miner service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error' 

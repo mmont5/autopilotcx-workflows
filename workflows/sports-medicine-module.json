@@ -1,0 +1,109 @@
+{
+  "name": "Sports Medicine Module",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "assessInjury",
+        "patientData": "={{ $json.body }}",
+        "assessmentCriteria": {
+          "injuryType": "required",
+          "injuryLocation": "required",
+          "injuryMechanism": "required",
+          "sportType": "required",
+          "previousInjuries": "optional",
+          "trainingLevel": "required"
+        }
+      },
+      "name": "InjuryAssessmentAgent",
+      "type": "autopilotcx-nodes.injuryAssessmentAgent",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "operation": "analyzePerformance",
+        "assessmentData": "={{ $json.body }}",
+        "analysisType": "performance_metrics",
+        "considerations": [
+          "strength_assessment",
+          "flexibility",
+          "balance",
+          "sport_specific_skills",
+          "recovery_patterns"
+        ]
+      },
+      "name": "PerformanceAnalysisAgent",
+      "type": "autopilotcx-nodes.performanceAnalysisAgent",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "operation": "createRehabPlan",
+        "analysisData": "={{ $json.body }}",
+        "planComponents": {
+          "include": [
+            "strength_training",
+            "flexibility_exercises",
+            "sport_specific_drills",
+            "recovery_protocols",
+            "return_to_play_criteria"
+          ],
+          "exclude": "none"
+        }
+      },
+      "name": "RehabPlanningAgent",
+      "type": "autopilotcx-nodes.rehabPlanningAgent",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "operation": "scheduleTraining",
+        "patientId": "={{ $json.body.patientId }}",
+        "rehabPlan": "={{ $json.body.rehabPlan }}",
+        "sessionType": "sports_rehab",
+        "duration": 45
+      },
+      "name": "TrainingScheduler",
+      "type": "autopilotcx-nodes.trainingScheduler",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "operation": "trackProgress",
+        "patientId": "={{ $json.body.patientId }}",
+        "rehabPlan": "={{ $json.body.rehabPlan }}",
+        "metrics": [
+          "strength_improvement",
+          "flexibility_gains",
+          "pain_reduction",
+          "functional_movement",
+          "return_to_play_readiness"
+        ]
+      },
+      "name": "ProgressTrackerAgent",
+      "type": "autopilotcx-nodes.progressTrackerAgent",
+      "typeVersion": 1,
+      "position": [1250, 300]
+    }
+  ],
+  "connections": {
+    "InjuryAssessmentAgent": {
+      "main": [[{"node": "PerformanceAnalysisAgent", "type": "main", "index": 0}]]
+    },
+    "PerformanceAnalysisAgent": {
+      "main": [[{"node": "RehabPlanningAgent", "type": "main", "index": 0}]]
+    },
+    "RehabPlanningAgent": {
+      "main": [[{"node": "TrainingScheduler", "type": "main", "index": 0}]]
+    },
+    "TrainingScheduler": {
+      "main": [[{"node": "ProgressTrackerAgent", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+} 

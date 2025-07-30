@@ -1,0 +1,757 @@
+openapi: 3.0.0
+info:
+  title: Megarray Orchestrator API
+  description: API for managing CrewAI agents and orchestrating workflows
+  version: 1.0.0
+  contact:
+    name: Megarray Support
+    email: support@megarray.ai
+    url: https://megarray.ai/support
+
+servers:
+  - url: http://localhost:8200
+    description: Local development server
+  - url: https://api.megarray.ai/orchestrator
+    description: Production server
+
+security:
+  - BearerAuth: []
+  - ApiKeyAuth: []
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        detail:
+          type: string
+          description: Error message
+        code:
+          type: string
+          description: Error code
+        timestamp:
+          type: string
+          format: date-time
+          description: When the error occurred
+
+    Agent:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Agent ID
+        name:
+          type: string
+          description: Agent name
+        role:
+          type: string
+          description: Agent role
+        goal:
+          type: string
+          description: Agent goal
+        backstory:
+          type: string
+          description: Agent backstory
+        tools:
+          type: array
+          items:
+            type: string
+          description: List of tool names
+        status:
+          type: string
+          enum: [idle, busy, error]
+          description: Agent status
+        created_at:
+          type: string
+          format: date-time
+          description: When the agent was created
+        updated_at:
+          type: string
+          format: date-time
+          description: When the agent was last updated
+        metadata:
+          type: object
+          properties:
+            team_id:
+              type: string
+              description: Team ID
+            created_by:
+              type: string
+              description: User ID who created the agent
+            tags:
+              type: array
+              items:
+                type: string
+              description: Agent tags
+
+    AgentRequest:
+      type: object
+      required:
+        - name
+        - role
+        - goal
+      properties:
+        name:
+          type: string
+          description: Agent name
+        role:
+          type: string
+          description: Agent role
+        goal:
+          type: string
+          description: Agent goal
+        backstory:
+          type: string
+          description: Agent backstory
+        tools:
+          type: array
+          items:
+            type: string
+          description: List of tool names
+        metadata:
+          type: object
+          properties:
+            team_id:
+              type: string
+              description: Team ID
+            tags:
+              type: array
+              items:
+                type: string
+              description: Agent tags
+
+    Workflow:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Workflow ID
+        name:
+          type: string
+          description: Workflow name
+        description:
+          type: string
+          description: Workflow description
+        agents:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: List of agent IDs
+        tasks:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+                description: Task ID
+              description:
+                type: string
+                description: Task description
+              agent_id:
+                type: string
+                format: uuid
+                description: Assigned agent ID
+              dependencies:
+                type: array
+                items:
+                  type: string
+                  format: uuid
+                description: Task dependencies
+              status:
+                type: string
+                enum: [pending, in_progress, completed, failed]
+                description: Task status
+        status:
+          type: string
+          enum: [pending, running, completed, failed]
+          description: Workflow status
+        created_at:
+          type: string
+          format: date-time
+          description: When the workflow was created
+        updated_at:
+          type: string
+          format: date-time
+          description: When the workflow was last updated
+        metadata:
+          type: object
+          properties:
+            team_id:
+              type: string
+              description: Team ID
+            created_by:
+              type: string
+              description: User ID who created the workflow
+            tags:
+              type: array
+              items:
+                type: string
+              description: Workflow tags
+
+    WorkflowRequest:
+      type: object
+      required:
+        - name
+        - agents
+        - tasks
+      properties:
+        name:
+          type: string
+          description: Workflow name
+        description:
+          type: string
+          description: Workflow description
+        agents:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: List of agent IDs
+        tasks:
+          type: array
+          items:
+            type: object
+            properties:
+              description:
+                type: string
+                description: Task description
+              agent_id:
+                type: string
+                format: uuid
+                description: Assigned agent ID
+              dependencies:
+                type: array
+                items:
+                  type: string
+                  format: uuid
+                description: Task dependencies
+        metadata:
+          type: object
+          properties:
+            team_id:
+              type: string
+              description: Team ID
+            tags:
+              type: array
+              items:
+                type: string
+              description: Workflow tags
+
+paths:
+  /v1/agents:
+    post:
+      summary: Create agent
+      description: Create a new CrewAI agent
+      operationId: createAgent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentRequest'
+      responses:
+        '201':
+          description: Agent created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Agent'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    get:
+      summary: List agents
+      description: Get list of CrewAI agents
+      operationId: listAgents
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [idle, busy, error]
+          description: Filter by agent status
+        - name: team_id
+          in: query
+          schema:
+            type: string
+          description: Filter by team ID
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+          description: Number of items per page
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Page offset
+      responses:
+        '200':
+          description: Agents retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  agents:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Agent'
+                  total:
+                    type: integer
+                    description: Total number of agents
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/agents/{agent_id}:
+    get:
+      summary: Get agent
+      description: Get details of a specific agent
+      operationId: getAgent
+      parameters:
+        - name: agent_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Agent retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Agent'
+        '404':
+          description: Agent not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    patch:
+      summary: Update agent
+      description: Update a specific agent
+      operationId: updateAgent
+      parameters:
+        - name: agent_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AgentRequest'
+      responses:
+        '200':
+          description: Agent updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Agent'
+        '404':
+          description: Agent not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      summary: Delete agent
+      description: Delete a specific agent
+      operationId: deleteAgent
+      parameters:
+        - name: agent_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Agent deleted successfully
+        '404':
+          description: Agent not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/workflows:
+    post:
+      summary: Create workflow
+      description: Create a new workflow
+      operationId: createWorkflow
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkflowRequest'
+      responses:
+        '201':
+          description: Workflow created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workflow'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    get:
+      summary: List workflows
+      description: Get list of workflows
+      operationId: listWorkflows
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, running, completed, failed]
+          description: Filter by workflow status
+        - name: team_id
+          in: query
+          schema:
+            type: string
+          description: Filter by team ID
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+          description: Number of items per page
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Page offset
+      responses:
+        '200':
+          description: Workflows retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  workflows:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Workflow'
+                  total:
+                    type: integer
+                    description: Total number of workflows
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/workflows/{workflow_id}:
+    get:
+      summary: Get workflow
+      description: Get details of a specific workflow
+      operationId: getWorkflow
+      parameters:
+        - name: workflow_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Workflow retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workflow'
+        '404':
+          description: Workflow not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    patch:
+      summary: Update workflow
+      description: Update a specific workflow
+      operationId: updateWorkflow
+      parameters:
+        - name: workflow_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkflowRequest'
+      responses:
+        '200':
+          description: Workflow updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workflow'
+        '404':
+          description: Workflow not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      summary: Delete workflow
+      description: Delete a specific workflow
+      operationId: deleteWorkflow
+      parameters:
+        - name: workflow_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Workflow deleted successfully
+        '404':
+          description: Workflow not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/workflows/{workflow_id}/start:
+    post:
+      summary: Start workflow
+      description: Start a specific workflow
+      operationId: startWorkflow
+      parameters:
+        - name: workflow_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Workflow started successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workflow'
+        '404':
+          description: Workflow not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/workflows/{workflow_id}/stop:
+    post:
+      summary: Stop workflow
+      description: Stop a specific workflow
+      operationId: stopWorkflow
+      parameters:
+        - name: workflow_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Workflow stopped successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Workflow'
+        '404':
+          description: Workflow not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /health:
+    get:
+      summary: Health check
+      description: Check the health status of the orchestrator service
+      operationId: checkHealth
+      responses:
+        '200':
+          description: Orchestrator service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+                  version:
+                    type: string
+                  uptime:
+                    type: number
+                    format: float
+                  memory_usage:
+                    type: number
+                    format: float
+                    description: Memory usage in MB
+                  cpu_usage:
+                    type: number
+                    format: float
+                    description: CPU usage percentage
+                  metrics:
+                    type: object
+                    properties:
+                      total_requests:
+                        type: integer
+                        description: Total number of requests
+                      total_agents:
+                        type: integer
+                        description: Total number of agents
+                      total_workflows:
+                        type: integer
+                        description: Total number of workflows
+                      average_latency:
+                        type: number
+                        format: float
+                        description: Average response time in ms
+                      error_rate:
+                        type: number
+                        format: float
+                        description: Error rate percentage
+                      agent_status_distribution:
+                        type: object
+                        properties:
+                          idle:
+                            type: integer
+                            description: Number of idle agents
+                          busy:
+                            type: integer
+                            description: Number of busy agents
+                          error:
+                            type: integer
+                            description: Number of agents in error state
+                      workflow_status_distribution:
+                        type: object
+                        properties:
+                          pending:
+                            type: integer
+                            description: Number of pending workflows
+                          running:
+                            type: integer
+                            description: Number of running workflows
+                          completed:
+                            type: integer
+                            description: Number of completed workflows
+                          failed:
+                            type: integer
+                            description: Number of failed workflows
+        '503':
+          description: Orchestrator service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error' 

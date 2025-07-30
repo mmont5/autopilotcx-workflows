@@ -1,0 +1,660 @@
+openapi: 3.0.0
+info:
+  title: Megarray Connector Gateway API
+  description: API for managing OAuth connectors and third-party integrations
+  version: 1.0.0
+  contact:
+    name: Megarray Support
+    email: support@megarray.ai
+    url: https://megarray.ai/support
+
+servers:
+  - url: http://localhost:9000
+    description: Local development server
+  - url: https://api.megarray.ai/connector
+    description: Production server
+
+security:
+  - BearerAuth: []
+  - ApiKeyAuth: []
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        detail:
+          type: string
+          description: Error message
+        code:
+          type: string
+          description: Error code
+        timestamp:
+          type: string
+          format: date-time
+          description: When the error occurred
+
+    Connector:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the connector
+        name:
+          type: string
+          description: Connector name
+        type:
+          type: string
+          enum: [oauth, api_key, webhook]
+          description: Connector type
+        provider:
+          type: string
+          description: Service provider (e.g., zapier, n8n, make)
+        status:
+          type: string
+          enum: [active, inactive, error]
+          description: Current status of the connector
+        config:
+          type: object
+          description: Connector configuration
+        credentials:
+          type: object
+          description: Connector credentials
+        last_sync:
+          type: string
+          format: date-time
+          description: Last successful sync time
+        created_at:
+          type: string
+          format: date-time
+          description: When the connector was created
+        updated_at:
+          type: string
+          format: date-time
+          description: When the connector was last updated
+        metadata:
+          type: object
+          properties:
+            team_id:
+              type: string
+              description: Team ID
+            user_id:
+              type: string
+              description: User ID
+            version:
+              type: string
+              description: Connector version
+            scopes:
+              type: array
+              items:
+                type: string
+              description: OAuth scopes
+            rate_limit:
+              type: integer
+              description: Rate limit per minute
+            error_count:
+              type: integer
+              description: Number of recent errors
+
+    ConnectorRequest:
+      type: object
+      required:
+        - name
+        - type
+        - provider
+        - config
+      properties:
+        name:
+          type: string
+          description: Connector name
+        type:
+          type: string
+          enum: [oauth, api_key, webhook]
+          description: Connector type
+        provider:
+          type: string
+          description: Service provider
+        config:
+          type: object
+          description: Connector configuration
+        credentials:
+          type: object
+          description: Connector credentials
+        metadata:
+          type: object
+          properties:
+            team_id:
+              type: string
+              description: Team ID
+            user_id:
+              type: string
+              description: User ID
+            version:
+              type: string
+              description: Connector version
+            scopes:
+              type: array
+              items:
+                type: string
+              description: OAuth scopes
+
+    Integration:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the integration
+        name:
+          type: string
+          description: Integration name
+        connector_id:
+          type: string
+          format: uuid
+          description: Associated connector ID
+        status:
+          type: string
+          enum: [active, inactive, error]
+          description: Current status of the integration
+        config:
+          type: object
+          description: Integration configuration
+        last_execution:
+          type: string
+          format: date-time
+          description: Last successful execution time
+        created_at:
+          type: string
+          format: date-time
+          description: When the integration was created
+        updated_at:
+          type: string
+          format: date-time
+          description: When the integration was last updated
+        metadata:
+          type: object
+          properties:
+            team_id:
+              type: string
+              description: Team ID
+            user_id:
+              type: string
+              description: User ID
+            execution_count:
+              type: integer
+              description: Number of executions
+            error_count:
+              type: integer
+              description: Number of recent errors
+            average_latency:
+              type: number
+              format: float
+              description: Average execution time in ms
+
+    IntegrationRequest:
+      type: object
+      required:
+        - name
+        - connector_id
+        - config
+      properties:
+        name:
+          type: string
+          description: Integration name
+        connector_id:
+          type: string
+          format: uuid
+          description: Associated connector ID
+        config:
+          type: object
+          description: Integration configuration
+        metadata:
+          type: object
+          properties:
+            team_id:
+              type: string
+              description: Team ID
+            user_id:
+              type: string
+              description: User ID
+
+paths:
+  /v1/connectors:
+    post:
+      summary: Create connector
+      description: Create a new connector
+      operationId: createConnector
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConnectorRequest'
+      responses:
+        '201':
+          description: Connector created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Connector'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    get:
+      summary: List connectors
+      description: List connectors with optional filtering
+      operationId: listConnectors
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [oauth, api_key, webhook]
+          description: Filter by connector type
+        - name: provider
+          in: query
+          schema:
+            type: string
+          description: Filter by provider
+        - name: team_id
+          in: query
+          schema:
+            type: string
+          description: Filter by team ID
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, inactive, error]
+          description: Filter by status
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+          description: Number of connectors to return
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Number of connectors to skip
+      responses:
+        '200':
+          description: Connectors retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  connectors:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Connector'
+                  total:
+                    type: integer
+                    description: Total number of connectors
+                  limit:
+                    type: integer
+                    description: Number of connectors per page
+                  offset:
+                    type: integer
+                    description: Number of connectors skipped
+
+  /v1/connectors/{connector_id}:
+    get:
+      summary: Get connector details
+      description: Get details of a specific connector
+      operationId: getConnector
+      parameters:
+        - name: connector_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID of the connector
+      responses:
+        '200':
+          description: Connector details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Connector'
+        '404':
+          description: Connector not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    patch:
+      summary: Update connector
+      description: Update an existing connector
+      operationId: updateConnector
+      parameters:
+        - name: connector_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID of the connector
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConnectorRequest'
+      responses:
+        '200':
+          description: Connector updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Connector'
+        '404':
+          description: Connector not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      summary: Delete connector
+      description: Delete an existing connector
+      operationId: deleteConnector
+      parameters:
+        - name: connector_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID of the connector
+      responses:
+        '204':
+          description: Connector deleted successfully
+        '404':
+          description: Connector not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/connectors/{connector_id}/integrations:
+    post:
+      summary: Create integration
+      description: Create a new integration for a connector
+      operationId: createIntegration
+      parameters:
+        - name: connector_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID of the connector
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IntegrationRequest'
+      responses:
+        '201':
+          description: Integration created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Integration'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    get:
+      summary: List integrations
+      description: List integrations for a connector
+      operationId: listIntegrations
+      parameters:
+        - name: connector_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID of the connector
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, inactive, error]
+          description: Filter by status
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+          description: Number of integrations to return
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Number of integrations to skip
+      responses:
+        '200':
+          description: Integrations retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  integrations:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Integration'
+                  total:
+                    type: integer
+                    description: Total number of integrations
+                  limit:
+                    type: integer
+                    description: Number of integrations per page
+                  offset:
+                    type: integer
+                    description: Number of integrations skipped
+
+  /v1/integrations/{integration_id}:
+    get:
+      summary: Get integration details
+      description: Get details of a specific integration
+      operationId: getIntegration
+      parameters:
+        - name: integration_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID of the integration
+      responses:
+        '200':
+          description: Integration details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Integration'
+        '404':
+          description: Integration not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    patch:
+      summary: Update integration
+      description: Update an existing integration
+      operationId: updateIntegration
+      parameters:
+        - name: integration_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID of the integration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IntegrationRequest'
+      responses:
+        '200':
+          description: Integration updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Integration'
+        '404':
+          description: Integration not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      summary: Delete integration
+      description: Delete an existing integration
+      operationId: deleteIntegration
+      parameters:
+        - name: integration_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID of the integration
+      responses:
+        '204':
+          description: Integration deleted successfully
+        '404':
+          description: Integration not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /health:
+    get:
+      summary: Health check
+      description: Check the health status of the connector gateway service
+      operationId: checkHealth
+      responses:
+        '200':
+          description: Connector gateway service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+                  version:
+                    type: string
+                  uptime:
+                    type: number
+                    format: float
+                  memory_usage:
+                    type: number
+                    format: float
+                    description: Memory usage in MB
+                  metrics:
+                    type: object
+                    properties:
+                      total_connectors:
+                        type: integer
+                        description: Total number of connectors
+                      active_connectors:
+                        type: integer
+                        description: Number of active connectors
+                      total_integrations:
+                        type: integer
+                        description: Total number of integrations
+                      active_integrations:
+                        type: integer
+                        description: Number of active integrations
+                      average_latency:
+                        type: number
+                        format: float
+                        description: Average execution time in ms
+                      error_rate:
+                        type: number
+                        format: float
+                        description: Error rate percentage
+                      connector_type_distribution:
+                        type: object
+                        properties:
+                          oauth:
+                            type: integer
+                            description: Number of OAuth connectors
+                          api_key:
+                            type: integer
+                            description: Number of API key connectors
+                          webhook:
+                            type: integer
+                            description: Number of webhook connectors
+                      provider_distribution:
+                        type: object
+                        properties:
+                          zapier:
+                            type: integer
+                            description: Number of Zapier connectors
+                          n8n:
+                            type: integer
+                            description: Number of n8n connectors
+                          make:
+                            type: integer
+                            description: Number of Make connectors
+                          custom:
+                            type: integer
+                            description: Number of custom connectors
+        '503':
+          description: Connector gateway service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error' 

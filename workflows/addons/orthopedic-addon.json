@@ -1,0 +1,133 @@
+{
+  "name": "Orthopedic Specialization Add-on",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "analyzeOrthopedicInquiry",
+        "inquiryData": "={{ $json.body }}",
+        "specialization": "orthopedic",
+        "triggers": {
+          "emergency": ["fracture", "dislocation", "severe_injury"],
+          "routine": ["follow-up", "rehabilitation", "consultation"],
+          "specialized": ["sports", "joint_replacement", "spine"]
+        }
+      },
+      "name": "Orthopedic Analysis Agent",
+      "type": "autopilotcx-nodes.specializedAgent",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "routeOrthopedicInquiry",
+        "analysisResult": "={{ $json.analysis }}",
+        "routingRules": {
+          "emergency": "immediate_human",
+          "routine": "scheduler",
+          "specialized": "specialist_coordinator"
+        }
+      },
+      "name": "Orthopedic Routing Agent",
+      "type": "autopilotcx-nodes.specializedAgent",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "operation": "scheduleOrthopedicVisit",
+        "clientId": "={{ $json.body.clientId }}",
+        "visitType": "={{ $json.analysis.visitType }}",
+        "duration": "={{ $json.analysis.estimatedDuration }}",
+        "preferences": {
+          "location": "={{ $json.body.preferredLocation }}",
+          "time": "={{ $json.body.preferredTime }}",
+          "specialist": "={{ $json.body.preferredSpecialist }}"
+        }
+      },
+      "name": "Orthopedic Scheduler",
+      "type": "autopilotcx-nodes.specializedAgent",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "operation": "prepareOrthopedicVisit",
+        "visitData": "={{ $json.visit }}",
+        "requirements": {
+          "forms": ["injury_history", "surgical_history"],
+          "documents": ["imaging", "previous_records"],
+          "preparation": ["fasting", "medication_list", "imaging_bring"]
+        }
+      },
+      "name": "Orthopedic Prep Agent",
+      "type": "autopilotcx-nodes.specializedAgent",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "operation": "sendOrthopedicInstructions",
+        "clientId": "={{ $json.body.clientId }}",
+        "instructionType": "pre_visit",
+        "channels": ["email", "sms"],
+        "content": {
+          "preparation": "={{ $json.preparation.instructions }}",
+          "what_to_bring": "={{ $json.preparation.required_items }}",
+          "location_info": "={{ $json.visit.location_details }}",
+          "post_visit_care": "={{ $json.preparation.post_care_instructions }}"
+        }
+      },
+      "name": "Orthopedic Instruction Agent",
+      "type": "autopilotcx-nodes.specializedAgent",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "operation": "trackOrthopedicMetrics",
+        "practiceId": "={{ $json.body.practiceId }}",
+        "metrics": [
+          "visit_types",
+          "emergency_cases",
+          "specialist_referrals",
+          "patient_satisfaction",
+          "rehabilitation_progress",
+          "surgical_outcomes"
+        ]
+      },
+      "name": "Orthopedic Analytics Agent",
+      "type": "autopilotcx-nodes.specializedAgent",
+      "typeVersion": 1,
+      "position": [1250, 300]
+    }
+  ],
+  "connections": {
+    "Orthopedic Analysis Agent": {
+      "main": [[{"node": "Orthopedic Routing Agent", "type": "main", "index": 0}]]
+    },
+    "Orthopedic Routing Agent": {
+      "main": [[{"node": "Orthopedic Scheduler", "type": "main", "index": 0}]]
+    },
+    "Orthopedic Scheduler": {
+      "main": [[{"node": "Orthopedic Prep Agent", "type": "main", "index": 0}]]
+    },
+    "Orthopedic Prep Agent": {
+      "main": [[{"node": "Orthopedic Instruction Agent", "type": "main", "index": 0}]]
+    },
+    "Orthopedic Instruction Agent": {
+      "main": [[{"node": "Orthopedic Analytics Agent", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "metadata": {
+    "specialization": "orthopedic",
+    "version": "1.0.0",
+    "compatibleWith": ["demo", "full"],
+    "integrationPoints": {
+      "demo": ["Demo Intake Webhook", "Maestro Agent"],
+      "full": ["Lead Intake Webhook", "Maestro Agent"]
+    }
+  }
+} 

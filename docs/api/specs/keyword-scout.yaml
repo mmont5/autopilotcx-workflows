@@ -1,0 +1,351 @@
+openapi: 3.0.0
+info:
+  title: Megarray Keyword Scout API
+  description: API for keyword research and SERP analysis using pytrends
+  version: 1.0.0
+  contact:
+    name: Megarray Support
+    email: support@megarray.ai
+    url: https://megarray.ai/support
+
+servers:
+  - url: http://localhost:8700
+    description: Local development server
+  - url: https://api.megarray.ai/keywords
+    description: Production server
+
+security:
+  - BearerAuth: []
+  - ApiKeyAuth: []
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        detail:
+          type: string
+          description: Error message
+        code:
+          type: string
+          description: Error code
+        timestamp:
+          type: string
+          format: date-time
+          description: When the error occurred
+
+    KeywordData:
+      type: object
+      properties:
+        keyword:
+          type: string
+          description: The keyword being analyzed
+        search_volume:
+          type: integer
+          description: Monthly search volume
+        competition:
+          type: number
+          format: float
+          description: Competition score (0-1)
+        cpc:
+          type: number
+          format: float
+          description: Cost per click
+        trend_data:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+                format: date
+              value:
+                type: integer
+          description: Historical trend data
+        related_queries:
+          type: array
+          items:
+            type: object
+            properties:
+              query:
+                type: string
+              value:
+                type: integer
+          description: Related search queries
+        metadata:
+          type: object
+          properties:
+            team_id:
+              type: string
+              description: Team ID
+            user_id:
+              type: string
+              description: User ID
+            session_id:
+              type: string
+              description: Session ID
+            geo:
+              type: string
+              description: Geographic location
+            language:
+              type: string
+              description: Language code
+            category:
+              type: string
+              description: Content category
+
+    KeywordRequest:
+      type: object
+      required:
+        - keywords
+      properties:
+        keywords:
+          type: array
+          items:
+            type: string
+          description: List of keywords to analyze
+        geo:
+          type: string
+          default: "US"
+          description: Geographic location
+        language:
+          type: string
+          default: "en"
+          description: Language code
+        timeframe:
+          type: string
+          default: "today 12-m"
+          description: Time period for analysis
+        category:
+          type: string
+          description: Content category
+        metadata:
+          type: object
+          properties:
+            team_id:
+              type: string
+              description: Team ID
+            user_id:
+              type: string
+              description: User ID
+            session_id:
+              type: string
+              description: Session ID
+
+    KeywordResponse:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/KeywordData'
+          description: List of keyword analysis results
+        metadata:
+          type: object
+          properties:
+            total_keywords:
+              type: integer
+              description: Total number of keywords analyzed
+            average_volume:
+              type: number
+              format: float
+              description: Average search volume
+            average_cpc:
+              type: number
+              format: float
+              description: Average cost per click
+            processing_time:
+              type: number
+              format: float
+              description: Processing time in seconds
+
+paths:
+  /v1/keywords:
+    post:
+      summary: Analyze keywords
+      description: Analyze keywords for search volume and trends
+      operationId: analyzeKeywords
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KeywordRequest'
+      responses:
+        '200':
+          description: Keywords analyzed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KeywordResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/keywords/trends:
+    get:
+      summary: Get keyword trends
+      description: Get historical trend data for keywords
+      operationId: getKeywordTrends
+      parameters:
+        - name: keywords
+          in: query
+          required: true
+          schema:
+            type: array
+            items:
+              type: string
+          description: Keywords to get trends for
+        - name: timeframe
+          in: query
+          schema:
+            type: string
+            default: "today 12-m"
+          description: Time period for trends
+        - name: geo
+          in: query
+          schema:
+            type: string
+            default: "US"
+          description: Geographic location
+      responses:
+        '200':
+          description: Trends retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  trends:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        keyword:
+                          type: string
+                        data:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              date:
+                                type: string
+                                format: date
+                              value:
+                                type: integer
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /health:
+    get:
+      summary: Health check
+      description: Check the health status of the keyword scout service
+      operationId: checkHealth
+      responses:
+        '200':
+          description: Keyword scout service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+                  version:
+                    type: string
+                  uptime:
+                    type: number
+                    format: float
+                  memory_usage:
+                    type: number
+                    format: float
+                    description: Memory usage in MB
+                  metrics:
+                    type: object
+                    properties:
+                      total_requests:
+                        type: integer
+                        description: Total number of requests
+                      total_keywords:
+                        type: integer
+                        description: Total number of keywords analyzed
+                      average_latency:
+                        type: number
+                        format: float
+                        description: Average response time in ms
+                      error_rate:
+                        type: number
+                        format: float
+                        description: Error rate percentage
+                      geo_distribution:
+                        type: object
+                        properties:
+                          US:
+                            type: integer
+                            description: Number of US requests
+                          UK:
+                            type: integer
+                            description: Number of UK requests
+                          CA:
+                            type: integer
+                            description: Number of CA requests
+                          AU:
+                            type: integer
+                            description: Number of AU requests
+                      category_distribution:
+                        type: object
+                        properties:
+                          business:
+                            type: integer
+                            description: Number of business queries
+                          technology:
+                            type: integer
+                            description: Number of technology queries
+                          entertainment:
+                            type: integer
+                            description: Number of entertainment queries
+                          education:
+                            type: integer
+                            description: Number of education queries
+        '503':
+          description: Keyword scout service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error' 

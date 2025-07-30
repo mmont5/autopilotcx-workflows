@@ -1,0 +1,650 @@
+openapi: 3.0.0
+info:
+  title: Megarray Billing Webhook API
+  description: API for Stripe webhook processing and ledger management
+  version: 1.0.0
+  contact:
+    name: Megarray Support
+    email: support@megarray.ai
+    url: https://megarray.ai/support
+
+servers:
+  - url: http://localhost:9300
+    description: Local development server
+  - url: https://api.megarray.ai/billing
+    description: Production server
+
+security:
+  - BearerAuth: []
+  - ApiKeyAuth: []
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        detail:
+          type: string
+          description: Error message
+        code:
+          type: string
+          description: Error code
+        timestamp:
+          type: string
+          format: date-time
+          description: When the error occurred
+
+    WebhookEvent:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the webhook event
+        stripe_event_id:
+          type: string
+          description: Stripe event ID
+        type:
+          type: string
+          enum: [invoice.paid, invoice.payment_failed, customer.subscription.created, customer.subscription.updated, customer.subscription.deleted, charge.succeeded, charge.failed, payment_intent.succeeded, payment_intent.failed]
+          description: Stripe event type
+        status:
+          type: string
+          enum: [pending, processing, completed, failed]
+          description: Processing status
+        payload:
+          type: object
+          description: Raw Stripe event payload
+        created_at:
+          type: string
+          format: date-time
+          description: When the event was received
+        processed_at:
+          type: string
+          format: date-time
+          description: When the event was processed
+        metadata:
+          type: object
+          properties:
+            team_id:
+              type: string
+              description: Team ID
+            user_id:
+              type: string
+              description: User ID
+            subscription_id:
+              type: string
+              description: Subscription ID
+            invoice_id:
+              type: string
+              description: Invoice ID
+            amount:
+              type: number
+              format: float
+              description: Amount in USD
+            currency:
+              type: string
+              description: Currency code
+            error_message:
+              type: string
+              description: Error message if failed
+
+    LedgerEntry:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the ledger entry
+        type:
+          type: string
+          enum: [subscription, usage, refund, adjustment]
+          description: Entry type
+        status:
+          type: string
+          enum: [pending, posted, voided]
+          description: Entry status
+        amount:
+          type: number
+          format: float
+          description: Amount in USD
+        currency:
+          type: string
+          description: Currency code
+        description:
+          type: string
+          description: Entry description
+        created_at:
+          type: string
+          format: date-time
+          description: When the entry was created
+        posted_at:
+          type: string
+          format: date-time
+          description: When the entry was posted
+        metadata:
+          type: object
+          properties:
+            team_id:
+              type: string
+              description: Team ID
+            user_id:
+              type: string
+              description: User ID
+            subscription_id:
+              type: string
+              description: Subscription ID
+            invoice_id:
+              type: string
+              description: Invoice ID
+            webhook_event_id:
+              type: string
+              description: Associated webhook event ID
+            product_id:
+              type: string
+              description: Product ID
+            price_id:
+              type: string
+              description: Price ID
+            quantity:
+              type: integer
+              description: Quantity for usage-based billing
+
+    UsageRecord:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the usage record
+        subscription_id:
+          type: string
+          description: Subscription ID
+        product_id:
+          type: string
+          description: Product ID
+        quantity:
+          type: integer
+          description: Usage quantity
+        timestamp:
+          type: string
+          format: date-time
+          description: When the usage occurred
+        status:
+          type: string
+          enum: [pending, reported, failed]
+          description: Reporting status
+        created_at:
+          type: string
+          format: date-time
+          description: When the record was created
+        reported_at:
+          type: string
+          format: date-time
+          description: When the usage was reported to Stripe
+        metadata:
+          type: object
+          properties:
+            team_id:
+              type: string
+              description: Team ID
+            user_id:
+              type: string
+              description: User ID
+            error_message:
+              type: string
+              description: Error message if failed
+
+paths:
+  /v1/webhooks/stripe:
+    post:
+      summary: Process Stripe webhook
+      description: Process incoming Stripe webhook events
+      operationId: processStripeWebhook
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - id
+                - type
+                - data
+              properties:
+                id:
+                  type: string
+                  description: Stripe event ID
+                type:
+                  type: string
+                  description: Stripe event type
+                data:
+                  type: object
+                  description: Stripe event data
+      responses:
+        '200':
+          description: Webhook processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookEvent'
+        '400':
+          description: Invalid webhook payload
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/webhooks/events:
+    get:
+      summary: List webhook events
+      description: List processed webhook events with optional filtering
+      operationId: listWebhookEvents
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+          description: Filter by event type
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, processing, completed, failed]
+          description: Filter by processing status
+        - name: team_id
+          in: query
+          schema:
+            type: string
+          description: Filter by team ID
+        - name: subscription_id
+          in: query
+          schema:
+            type: string
+          description: Filter by subscription ID
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Filter by start date
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Filter by end date
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+          description: Number of events to return
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Number of events to skip
+      responses:
+        '200':
+          description: Events retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  events:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/WebhookEvent'
+                  total:
+                    type: integer
+                    description: Total number of events
+                  limit:
+                    type: integer
+                    description: Number of events per page
+                  offset:
+                    type: integer
+                    description: Number of events skipped
+
+  /v1/webhooks/events/{event_id}:
+    get:
+      summary: Get webhook event details
+      description: Get details of a specific webhook event
+      operationId: getWebhookEvent
+      parameters:
+        - name: event_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID of the webhook event
+      responses:
+        '200':
+          description: Event details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookEvent'
+        '404':
+          description: Event not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/ledger:
+    get:
+      summary: List ledger entries
+      description: List ledger entries with optional filtering
+      operationId: listLedgerEntries
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [subscription, usage, refund, adjustment]
+          description: Filter by entry type
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, posted, voided]
+          description: Filter by entry status
+        - name: team_id
+          in: query
+          schema:
+            type: string
+          description: Filter by team ID
+        - name: subscription_id
+          in: query
+          schema:
+            type: string
+          description: Filter by subscription ID
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Filter by start date
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Filter by end date
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+          description: Number of entries to return
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Number of entries to skip
+      responses:
+        '200':
+          description: Ledger entries retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  entries:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/LedgerEntry'
+                  total:
+                    type: integer
+                    description: Total number of entries
+                  limit:
+                    type: integer
+                    description: Number of entries per page
+                  offset:
+                    type: integer
+                    description: Number of entries skipped
+
+  /v1/usage:
+    post:
+      summary: Report usage
+      description: Report usage for a subscription
+      operationId: reportUsage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - subscription_id
+                - product_id
+                - quantity
+              properties:
+                subscription_id:
+                  type: string
+                  description: Subscription ID
+                product_id:
+                  type: string
+                  description: Product ID
+                quantity:
+                  type: integer
+                  description: Usage quantity
+                timestamp:
+                  type: string
+                  format: date-time
+                  description: When the usage occurred
+                metadata:
+                  type: object
+                  properties:
+                    team_id:
+                      type: string
+                      description: Team ID
+                    user_id:
+                      type: string
+                      description: User ID
+      responses:
+        '201':
+          description: Usage reported successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsageRecord'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    get:
+      summary: List usage records
+      description: List usage records with optional filtering
+      operationId: listUsageRecords
+      parameters:
+        - name: subscription_id
+          in: query
+          schema:
+            type: string
+          description: Filter by subscription ID
+        - name: product_id
+          in: query
+          schema:
+            type: string
+          description: Filter by product ID
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, reported, failed]
+          description: Filter by reporting status
+        - name: team_id
+          in: query
+          schema:
+            type: string
+          description: Filter by team ID
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Filter by start date
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Filter by end date
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+          description: Number of records to return
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Number of records to skip
+      responses:
+        '200':
+          description: Usage records retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  records:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/UsageRecord'
+                  total:
+                    type: integer
+                    description: Total number of records
+                  limit:
+                    type: integer
+                    description: Number of records per page
+                  offset:
+                    type: integer
+                    description: Number of records skipped
+
+  /health:
+    get:
+      summary: Health check
+      description: Check the health status of the billing webhook service
+      operationId: checkHealth
+      responses:
+        '200':
+          description: Billing webhook service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+                  version:
+                    type: string
+                  uptime:
+                    type: number
+                    format: float
+                  memory_usage:
+                    type: number
+                    format: float
+                    description: Memory usage in MB
+                  metrics:
+                    type: object
+                    properties:
+                      total_events:
+                        type: integer
+                        description: Total number of webhook events
+                      pending_events:
+                        type: integer
+                        description: Number of pending events
+                      total_entries:
+                        type: integer
+                        description: Total number of ledger entries
+                      pending_entries:
+                        type: integer
+                        description: Number of pending entries
+                      total_usage:
+                        type: integer
+                        description: Total number of usage records
+                      pending_usage:
+                        type: integer
+                        description: Number of pending usage records
+                      average_latency:
+                        type: number
+                        format: float
+                        description: Average processing time in ms
+                      error_rate:
+                        type: number
+                        format: float
+                        description: Error rate percentage
+                      event_type_distribution:
+                        type: object
+                        properties:
+                          invoice_paid:
+                            type: integer
+                            description: Number of invoice.paid events
+                          invoice_payment_failed:
+                            type: integer
+                            description: Number of invoice.payment_failed events
+                          subscription_created:
+                            type: integer
+                            description: Number of customer.subscription.created events
+                          subscription_updated:
+                            type: integer
+                            description: Number of customer.subscription.updated events
+                          subscription_deleted:
+                            type: integer
+                            description: Number of customer.subscription.deleted events
+                          charge_succeeded:
+                            type: integer
+                            description: Number of charge.succeeded events
+                          charge_failed:
+                            type: integer
+                            description: Number of charge.failed events
+                          payment_intent_succeeded:
+                            type: integer
+                            description: Number of payment_intent.succeeded events
+                          payment_intent_failed:
+                            type: integer
+                            description: Number of payment_intent.failed events
+        '503':
+          description: Billing webhook service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error' 

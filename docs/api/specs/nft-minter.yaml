@@ -1,0 +1,645 @@
+openapi: 3.0.0
+info:
+  title: Megarray NFT Minter API
+  description: API for minting NFTs on Base L2 (ERC-721/1155)
+  version: 1.0.0
+  contact:
+    name: Megarray Support
+    email: support@megarray.ai
+    url: https://megarray.ai/support
+
+servers:
+  - url: http://localhost:9100
+    description: Local development server
+  - url: https://api.megarray.ai/nft-minter
+    description: Production server
+
+security:
+  - BearerAuth: []
+  - ApiKeyAuth: []
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        detail:
+          type: string
+          description: Error message
+        code:
+          type: string
+          description: Error code
+        timestamp:
+          type: string
+          format: date-time
+          description: When the error occurred
+
+    NFT:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the NFT
+        token_id:
+          type: string
+          description: On-chain token ID
+        contract_address:
+          type: string
+          description: NFT contract address
+        standard:
+          type: string
+          enum: [erc721, erc1155]
+          description: NFT standard
+        name:
+          type: string
+          description: NFT name
+        description:
+          type: string
+          description: NFT description
+        image_url:
+          type: string
+          description: NFT image URL
+        metadata_url:
+          type: string
+          description: NFT metadata URL
+        attributes:
+          type: array
+          items:
+            type: object
+            properties:
+              trait_type:
+                type: string
+                description: Attribute name
+              value:
+                type: string
+                description: Attribute value
+        status:
+          type: string
+          enum: [pending, minting, minted, failed]
+          description: Current status of the NFT
+        transaction_hash:
+          type: string
+          description: Transaction hash
+        created_at:
+          type: string
+          format: date-time
+          description: When the NFT was created
+        updated_at:
+          type: string
+          format: date-time
+          description: When the NFT was last updated
+        metadata:
+          type: object
+          properties:
+            team_id:
+              type: string
+              description: Team ID
+            user_id:
+              type: string
+              description: User ID
+            collection_id:
+              type: string
+              description: Collection ID
+            royalty_percentage:
+              type: number
+              format: float
+              description: Royalty percentage
+            supply:
+              type: integer
+              description: Total supply (ERC-1155 only)
+            minted_supply:
+              type: integer
+              description: Number of tokens minted
+
+    NFTRequest:
+      type: object
+      required:
+        - name
+        - description
+        - image_url
+        - standard
+      properties:
+        name:
+          type: string
+          description: NFT name
+        description:
+          type: string
+          description: NFT description
+        image_url:
+          type: string
+          description: NFT image URL
+        standard:
+          type: string
+          enum: [erc721, erc1155]
+          description: NFT standard
+        attributes:
+          type: array
+          items:
+            type: object
+            properties:
+              trait_type:
+                type: string
+                description: Attribute name
+              value:
+                type: string
+                description: Attribute value
+        metadata:
+          type: object
+          properties:
+            team_id:
+              type: string
+              description: Team ID
+            user_id:
+              type: string
+              description: User ID
+            collection_id:
+              type: string
+              description: Collection ID
+            royalty_percentage:
+              type: number
+              format: float
+              description: Royalty percentage
+            supply:
+              type: integer
+              description: Total supply (ERC-1155 only)
+
+    Collection:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the collection
+        name:
+          type: string
+          description: Collection name
+        description:
+          type: string
+          description: Collection description
+        contract_address:
+          type: string
+          description: Collection contract address
+        standard:
+          type: string
+          enum: [erc721, erc1155]
+          description: Collection standard
+        image_url:
+          type: string
+          description: Collection image URL
+        status:
+          type: string
+          enum: [pending, deploying, active, failed]
+          description: Current status of the collection
+        transaction_hash:
+          type: string
+          description: Deployment transaction hash
+        created_at:
+          type: string
+          format: date-time
+          description: When the collection was created
+        updated_at:
+          type: string
+          format: date-time
+          description: When the collection was last updated
+        metadata:
+          type: object
+          properties:
+            team_id:
+              type: string
+              description: Team ID
+            user_id:
+              type: string
+              description: User ID
+            royalty_percentage:
+              type: number
+              format: float
+              description: Default royalty percentage
+            total_supply:
+              type: integer
+              description: Total number of NFTs
+            minted_supply:
+              type: integer
+              description: Number of NFTs minted
+
+    CollectionRequest:
+      type: object
+      required:
+        - name
+        - description
+        - standard
+      properties:
+        name:
+          type: string
+          description: Collection name
+        description:
+          type: string
+          description: Collection description
+        standard:
+          type: string
+          enum: [erc721, erc1155]
+          description: Collection standard
+        image_url:
+          type: string
+          description: Collection image URL
+        metadata:
+          type: object
+          properties:
+            team_id:
+              type: string
+              description: Team ID
+            user_id:
+              type: string
+              description: User ID
+            royalty_percentage:
+              type: number
+              format: float
+              description: Default royalty percentage
+
+paths:
+  /v1/collections:
+    post:
+      summary: Create collection
+      description: Create a new NFT collection
+      operationId: createCollection
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CollectionRequest'
+      responses:
+        '201':
+          description: Collection created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Collection'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    get:
+      summary: List collections
+      description: List NFT collections with optional filtering
+      operationId: listCollections
+      parameters:
+        - name: standard
+          in: query
+          schema:
+            type: string
+            enum: [erc721, erc1155]
+          description: Filter by collection standard
+        - name: team_id
+          in: query
+          schema:
+            type: string
+          description: Filter by team ID
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, deploying, active, failed]
+          description: Filter by status
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+          description: Number of collections to return
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Number of collections to skip
+      responses:
+        '200':
+          description: Collections retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  collections:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Collection'
+                  total:
+                    type: integer
+                    description: Total number of collections
+                  limit:
+                    type: integer
+                    description: Number of collections per page
+                  offset:
+                    type: integer
+                    description: Number of collections skipped
+
+  /v1/collections/{collection_id}:
+    get:
+      summary: Get collection details
+      description: Get details of a specific collection
+      operationId: getCollection
+      parameters:
+        - name: collection_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID of the collection
+      responses:
+        '200':
+          description: Collection details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Collection'
+        '404':
+          description: Collection not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    patch:
+      summary: Update collection
+      description: Update an existing collection
+      operationId: updateCollection
+      parameters:
+        - name: collection_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID of the collection
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CollectionRequest'
+      responses:
+        '200':
+          description: Collection updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Collection'
+        '404':
+          description: Collection not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/collections/{collection_id}/nfts:
+    post:
+      summary: Create NFT
+      description: Create a new NFT in a collection
+      operationId: createNFT
+      parameters:
+        - name: collection_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID of the collection
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NFTRequest'
+      responses:
+        '201':
+          description: NFT created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NFT'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    get:
+      summary: List NFTs
+      description: List NFTs in a collection
+      operationId: listNFTs
+      parameters:
+        - name: collection_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID of the collection
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, minting, minted, failed]
+          description: Filter by status
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+          description: Number of NFTs to return
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Number of NFTs to skip
+      responses:
+        '200':
+          description: NFTs retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  nfts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/NFT'
+                  total:
+                    type: integer
+                    description: Total number of NFTs
+                  limit:
+                    type: integer
+                    description: Number of NFTs per page
+                  offset:
+                    type: integer
+                    description: Number of NFTs skipped
+
+  /v1/nfts/{nft_id}:
+    get:
+      summary: Get NFT details
+      description: Get details of a specific NFT
+      operationId: getNFT
+      parameters:
+        - name: nft_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID of the NFT
+      responses:
+        '200':
+          description: NFT details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NFT'
+        '404':
+          description: NFT not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    patch:
+      summary: Update NFT
+      description: Update an existing NFT
+      operationId: updateNFT
+      parameters:
+        - name: nft_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID of the NFT
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NFTRequest'
+      responses:
+        '200':
+          description: NFT updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NFT'
+        '404':
+          description: NFT not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /health:
+    get:
+      summary: Health check
+      description: Check the health status of the NFT minter service
+      operationId: checkHealth
+      responses:
+        '200':
+          description: NFT minter service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+                  version:
+                    type: string
+                  uptime:
+                    type: number
+                    format: float
+                  memory_usage:
+                    type: number
+                    format: float
+                    description: Memory usage in MB
+                  metrics:
+                    type: object
+                    properties:
+                      total_collections:
+                        type: integer
+                        description: Total number of collections
+                      active_collections:
+                        type: integer
+                        description: Number of active collections
+                      total_nfts:
+                        type: integer
+                        description: Total number of NFTs
+                      minted_nfts:
+                        type: integer
+                        description: Number of minted NFTs
+                      average_latency:
+                        type: number
+                        format: float
+                        description: Average minting time in ms
+                      error_rate:
+                        type: number
+                        format: float
+                        description: Error rate percentage
+                      standard_distribution:
+                        type: object
+                        properties:
+                          erc721:
+                            type: integer
+                            description: Number of ERC-721 collections
+                          erc1155:
+                            type: integer
+                            description: Number of ERC-1155 collections
+                      status_distribution:
+                        type: object
+                        properties:
+                          pending:
+                            type: integer
+                            description: Number of pending NFTs
+                          minting:
+                            type: integer
+                            description: Number of minting NFTs
+                          minted:
+                            type: integer
+                            description: Number of minted NFTs
+                          failed:
+                            type: integer
+                            description: Number of failed NFTs
+        '503':
+          description: NFT minter service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error' 

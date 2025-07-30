@@ -1,0 +1,408 @@
+openapi: 3.0.0
+info:
+  title: Megarray LLM Server API
+  description: API for vLLM serving of Meta Llama 3
+  version: 1.0.0
+  contact:
+    name: Megarray Support
+    email: support@megarray.ai
+    url: https://megarray.ai/support
+
+servers:
+  - url: http://localhost:8300
+    description: Local development server
+  - url: https://api.megarray.ai/llm
+    description: Production server
+
+security:
+  - BearerAuth: []
+  - ApiKeyAuth: []
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        detail:
+          type: string
+          description: Error message
+        code:
+          type: string
+          description: Error code
+        timestamp:
+          type: string
+          format: date-time
+          description: When the error occurred
+
+    Completion:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Completion ID
+        text:
+          type: string
+          description: Generated text
+        model:
+          type: string
+          description: Model name
+        created_at:
+          type: string
+          format: date-time
+          description: When the completion was created
+        usage:
+          type: object
+          properties:
+            prompt_tokens:
+              type: integer
+              description: Number of tokens in the prompt
+            completion_tokens:
+              type: integer
+              description: Number of tokens in the completion
+            total_tokens:
+              type: integer
+              description: Total number of tokens
+        metadata:
+          type: object
+          properties:
+            team_id:
+              type: string
+              description: Team ID
+            user_id:
+              type: string
+              description: User ID
+            session_id:
+              type: string
+              description: Session ID
+
+    CompletionRequest:
+      type: object
+      required:
+        - prompt
+      properties:
+        prompt:
+          type: string
+          description: Input prompt
+        model:
+          type: string
+          default: llama-3-70b
+          description: Model to use
+        max_tokens:
+          type: integer
+          default: 1000
+          description: Maximum number of tokens to generate
+        temperature:
+          type: number
+          format: float
+          default: 0.7
+          minimum: 0.0
+          maximum: 2.0
+          description: Sampling temperature
+        top_p:
+          type: number
+          format: float
+          default: 0.9
+          minimum: 0.0
+          maximum: 1.0
+          description: Nucleus sampling parameter
+        frequency_penalty:
+          type: number
+          format: float
+          default: 0.0
+          minimum: -2.0
+          maximum: 2.0
+          description: Frequency penalty
+        presence_penalty:
+          type: number
+          format: float
+          default: 0.0
+          minimum: -2.0
+          maximum: 2.0
+          description: Presence penalty
+        stop:
+          type: array
+          items:
+            type: string
+          description: Stop sequences
+        metadata:
+          type: object
+          properties:
+            team_id:
+              type: string
+              description: Team ID
+            user_id:
+              type: string
+              description: User ID
+            session_id:
+              type: string
+              description: Session ID
+
+    Embedding:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Embedding ID
+        embedding:
+          type: array
+          items:
+            type: number
+            format: float
+          description: Embedding vector
+        model:
+          type: string
+          description: Model name
+        created_at:
+          type: string
+          format: date-time
+          description: When the embedding was created
+        metadata:
+          type: object
+          properties:
+            team_id:
+              type: string
+              description: Team ID
+            user_id:
+              type: string
+              description: User ID
+            session_id:
+              type: string
+              description: Session ID
+
+    EmbeddingRequest:
+      type: object
+      required:
+        - text
+      properties:
+        text:
+          type: string
+          description: Text to embed
+        model:
+          type: string
+          default: llama-3-70b
+          description: Model to use
+        metadata:
+          type: object
+          properties:
+            team_id:
+              type: string
+              description: Team ID
+            user_id:
+              type: string
+              description: User ID
+            session_id:
+              type: string
+              description: Session ID
+
+paths:
+  /v1/completions:
+    post:
+      summary: Create completion
+      description: Generate text completion using Llama 3
+      operationId: createCompletion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompletionRequest'
+      responses:
+        '200':
+          description: Completion generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Completion'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/embeddings:
+    post:
+      summary: Create embedding
+      description: Generate text embedding using Llama 3
+      operationId: createEmbedding
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmbeddingRequest'
+      responses:
+        '200':
+          description: Embedding generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Embedding'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/models:
+    get:
+      summary: List models
+      description: Get list of available models
+      operationId: listModels
+      responses:
+        '200':
+          description: Models retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  models:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          description: Model ID
+                        name:
+                          type: string
+                          description: Model name
+                        description:
+                          type: string
+                          description: Model description
+                        max_tokens:
+                          type: integer
+                          description: Maximum context length
+                        capabilities:
+                          type: array
+                          items:
+                            type: string
+                            enum: [completion, embedding]
+                          description: Model capabilities
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /health:
+    get:
+      summary: Health check
+      description: Check the health status of the LLM server
+      operationId: checkHealth
+      responses:
+        '200':
+          description: LLM server is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+                  version:
+                    type: string
+                  uptime:
+                    type: number
+                    format: float
+                  memory_usage:
+                    type: number
+                    format: float
+                    description: Memory usage in MB
+                  gpu_usage:
+                    type: number
+                    format: float
+                    description: GPU usage percentage
+                  metrics:
+                    type: object
+                    properties:
+                      total_requests:
+                        type: integer
+                        description: Total number of requests
+                      total_completions:
+                        type: integer
+                        description: Total number of completions
+                      total_embeddings:
+                        type: integer
+                        description: Total number of embeddings
+                      average_latency:
+                        type: number
+                        format: float
+                        description: Average response time in ms
+                      error_rate:
+                        type: number
+                        format: float
+                        description: Error rate percentage
+                      token_usage:
+                        type: object
+                        properties:
+                          total_tokens:
+                            type: integer
+                            description: Total number of tokens processed
+                          prompt_tokens:
+                            type: integer
+                            description: Number of prompt tokens
+                          completion_tokens:
+                            type: integer
+                            description: Number of completion tokens
+                          embedding_tokens:
+                            type: integer
+                            description: Number of embedding tokens
+                      model_distribution:
+                        type: object
+                        properties:
+                          llama_3_70b:
+                            type: integer
+                            description: Number of requests for Llama 3 70B
+                          llama_3_13b:
+                            type: integer
+                            description: Number of requests for Llama 3 13B
+                          llama_3_7b:
+                            type: integer
+                            description: Number of requests for Llama 3 7B
+        '503':
+          description: LLM server is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error' 

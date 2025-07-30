@@ -1,0 +1,435 @@
+openapi: 3.0.0
+info:
+  title: Megarray Image Generation API
+  description: API for Stable Diffusion XL image generation
+  version: 1.0.0
+  contact:
+    name: Megarray Support
+    email: support@megarray.ai
+    url: https://megarray.ai/support
+
+servers:
+  - url: http://localhost:8400
+    description: Local development server
+  - url: https://api.megarray.ai/image
+    description: Production server
+
+security:
+  - BearerAuth: []
+  - ApiKeyAuth: []
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        detail:
+          type: string
+          description: Error message
+        code:
+          type: string
+          description: Error code
+        timestamp:
+          type: string
+          format: date-time
+          description: When the error occurred
+
+    Image:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Image ID
+        url:
+          type: string
+          format: uri
+          description: Image URL
+        width:
+          type: integer
+          description: Image width in pixels
+        height:
+          type: integer
+          description: Image height in pixels
+        model:
+          type: string
+          description: Model name
+        created_at:
+          type: string
+          format: date-time
+          description: When the image was created
+        metadata:
+          type: object
+          properties:
+            team_id:
+              type: string
+              description: Team ID
+            user_id:
+              type: string
+              description: User ID
+            session_id:
+              type: string
+              description: Session ID
+            prompt:
+              type: string
+              description: Generation prompt
+            negative_prompt:
+              type: string
+              description: Negative prompt
+            seed:
+              type: integer
+              description: Random seed used
+            steps:
+              type: integer
+              description: Number of diffusion steps
+            cfg_scale:
+              type: number
+              format: float
+              description: CFG scale used
+            sampler:
+              type: string
+              description: Sampler used
+            style:
+              type: string
+              description: Style preset used
+
+    ImageRequest:
+      type: object
+      required:
+        - prompt
+      properties:
+        prompt:
+          type: string
+          description: Image generation prompt
+        negative_prompt:
+          type: string
+          description: Negative prompt
+        width:
+          type: integer
+          default: 1024
+          minimum: 512
+          maximum: 2048
+          description: Image width in pixels
+        height:
+          type: integer
+          default: 1024
+          minimum: 512
+          maximum: 2048
+          description: Image height in pixels
+        num_images:
+          type: integer
+          default: 1
+          minimum: 1
+          maximum: 4
+          description: Number of images to generate
+        steps:
+          type: integer
+          default: 30
+          minimum: 10
+          maximum: 50
+          description: Number of diffusion steps
+        cfg_scale:
+          type: number
+          format: float
+          default: 7.0
+          minimum: 1.0
+          maximum: 20.0
+          description: CFG scale
+        seed:
+          type: integer
+          description: Random seed
+        sampler:
+          type: string
+          default: euler_a
+          enum: [euler_a, euler, lms, heun, dpm2, dpm2_a, dpmpp_2s_a, dpmpp_2m, dpmpp_sde, dpmpp_2m_sde]
+          description: Sampler to use
+        style:
+          type: string
+          enum: [none, anime, realistic, cinematic, fantasy, portrait, landscape, product]
+          default: none
+          description: Style preset to use
+        metadata:
+          type: object
+          properties:
+            team_id:
+              type: string
+              description: Team ID
+            user_id:
+              type: string
+              description: User ID
+            session_id:
+              type: string
+              description: Session ID
+
+    ImageBatchRequest:
+      type: object
+      required:
+        - requests
+      properties:
+        requests:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImageRequest'
+          description: List of image generation requests
+
+    ImageBatchResponse:
+      type: object
+      properties:
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/Image'
+          description: List of generated images
+
+paths:
+  /v1/images:
+    post:
+      summary: Generate image
+      description: Generate an image using Stable Diffusion XL
+      operationId: generateImage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImageRequest'
+      responses:
+        '200':
+          description: Image generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Image'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/images/batch:
+    post:
+      summary: Generate batch images
+      description: Generate multiple images in one request
+      operationId: generateBatchImages
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImageBatchRequest'
+      responses:
+        '200':
+          description: Images generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageBatchResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/images/{image_id}:
+    get:
+      summary: Get image
+      description: Get details of a specific image
+      operationId: getImage
+      parameters:
+        - name: image_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Image retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Image'
+        '404':
+          description: Image not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/styles:
+    get:
+      summary: List styles
+      description: Get list of available style presets
+      operationId: listStyles
+      responses:
+        '200':
+          description: Styles retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  styles:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          description: Style ID
+                        name:
+                          type: string
+                          description: Style name
+                        description:
+                          type: string
+                          description: Style description
+                        preview_url:
+                          type: string
+                          format: uri
+                          description: Preview image URL
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /health:
+    get:
+      summary: Health check
+      description: Check the health status of the image generation service
+      operationId: checkHealth
+      responses:
+        '200':
+          description: Image generation service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+                  version:
+                    type: string
+                  uptime:
+                    type: number
+                    format: float
+                  memory_usage:
+                    type: number
+                    format: float
+                    description: Memory usage in MB
+                  gpu_usage:
+                    type: number
+                    format: float
+                    description: GPU usage percentage
+                  metrics:
+                    type: object
+                    properties:
+                      total_requests:
+                        type: integer
+                        description: Total number of requests
+                      total_images:
+                        type: integer
+                        description: Total number of images generated
+                      average_latency:
+                        type: number
+                        format: float
+                        description: Average response time in ms
+                      error_rate:
+                        type: number
+                        format: float
+                        description: Error rate percentage
+                      style_distribution:
+                        type: object
+                        properties:
+                          none:
+                            type: integer
+                            description: Number of images with no style
+                          anime:
+                            type: integer
+                            description: Number of anime style images
+                          realistic:
+                            type: integer
+                            description: Number of realistic style images
+                          cinematic:
+                            type: integer
+                            description: Number of cinematic style images
+                          fantasy:
+                            type: integer
+                            description: Number of fantasy style images
+                          portrait:
+                            type: integer
+                            description: Number of portrait style images
+                          landscape:
+                            type: integer
+                            description: Number of landscape style images
+                          product:
+                            type: integer
+                            description: Number of product style images
+                      resolution_distribution:
+                        type: object
+                        properties:
+                          "512x512":
+                            type: integer
+                            description: Number of 512x512 images
+                          "768x768":
+                            type: integer
+                            description: Number of 768x768 images
+                          "1024x1024":
+                            type: integer
+                            description: Number of 1024x1024 images
+                          "1536x1536":
+                            type: integer
+                            description: Number of 1536x1536 images
+                          "2048x2048":
+                            type: integer
+                            description: Number of 2048x2048 images
+        '503':
+          description: Image generation service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error' 

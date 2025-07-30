@@ -1,0 +1,130 @@
+{
+  "name": "Dentistry Specialization Add-on",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "analyzeDentalInquiry",
+        "inquiryData": "={{ $json.body }}",
+        "specialization": "dentistry",
+        "triggers": {
+          "emergency": ["severe_pain", "broken_tooth", "swelling"],
+          "routine": ["cleaning", "checkup", "whitening"],
+          "specialized": ["orthodontics", "implant", "root_canal"]
+        }
+      },
+      "name": "Dental Analysis Agent",
+      "type": "autopilotcx-nodes.specializedAgent",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "routeDentalInquiry",
+        "analysisResult": "={{ $json.analysis }}",
+        "routingRules": {
+          "emergency": "immediate_human",
+          "routine": "scheduler",
+          "specialized": "specialist_coordinator"
+        }
+      },
+      "name": "Dental Routing Agent",
+      "type": "autopilotcx-nodes.specializedAgent",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "operation": "scheduleDentalAppointment",
+        "clientId": "={{ $json.body.clientId }}",
+        "appointmentType": "={{ $json.analysis.appointmentType }}",
+        "duration": "={{ $json.analysis.estimatedDuration }}",
+        "preferences": {
+          "location": "={{ $json.body.preferredLocation }}",
+          "time": "={{ $json.body.preferredTime }}",
+          "dentist": "={{ $json.body.preferredDentist }}"
+        }
+      },
+      "name": "Dental Scheduler",
+      "type": "autopilotcx-nodes.specializedAgent",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "operation": "prepareDentalVisit",
+        "appointmentData": "={{ $json.appointment }}",
+        "requirements": {
+          "forms": ["dental_history", "insurance_verification"],
+          "documents": ["xrays", "previous_records"],
+          "preparation": ["fasting", "medication_list"]
+        }
+      },
+      "name": "Dental Prep Agent",
+      "type": "autopilotcx-nodes.specializedAgent",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "operation": "sendDentalInstructions",
+        "clientId": "={{ $json.body.clientId }}",
+        "instructionType": "pre_appointment",
+        "channels": ["email", "sms"],
+        "content": {
+          "preparation": "={{ $json.preparation.instructions }}",
+          "what_to_bring": "={{ $json.preparation.required_items }}",
+          "location_info": "={{ $json.appointment.location_details }}"
+        }
+      },
+      "name": "Dental Instruction Agent",
+      "type": "autopilotcx-nodes.specializedAgent",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "operation": "trackDentalMetrics",
+        "practiceId": "={{ $json.body.practiceId }}",
+        "metrics": [
+          "appointment_types",
+          "emergency_cases",
+          "specialist_referrals",
+          "patient_satisfaction"
+        ]
+      },
+      "name": "Dental Analytics Agent",
+      "type": "autopilotcx-nodes.specializedAgent",
+      "typeVersion": 1,
+      "position": [1250, 300]
+    }
+  ],
+  "connections": {
+    "Dental Analysis Agent": {
+      "main": [[{"node": "Dental Routing Agent", "type": "main", "index": 0}]]
+    },
+    "Dental Routing Agent": {
+      "main": [[{"node": "Dental Scheduler", "type": "main", "index": 0}]]
+    },
+    "Dental Scheduler": {
+      "main": [[{"node": "Dental Prep Agent", "type": "main", "index": 0}]]
+    },
+    "Dental Prep Agent": {
+      "main": [[{"node": "Dental Instruction Agent", "type": "main", "index": 0}]]
+    },
+    "Dental Instruction Agent": {
+      "main": [[{"node": "Dental Analytics Agent", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "metadata": {
+    "specialization": "dentistry",
+    "version": "1.0.0",
+    "compatibleWith": ["demo", "full"],
+    "integrationPoints": {
+      "demo": ["Demo Intake Webhook", "Maestro Agent"],
+      "full": ["Lead Intake Webhook", "Maestro Agent"]
+    }
+  }
+} 

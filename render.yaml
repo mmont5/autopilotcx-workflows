@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: n8n
+    env: docker
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: N8N_HOST
+        value: cx.autopilotcx.app
+      - key: N8N_PROTOCOL
+        value: https
+      - key: N8N_DB_TYPE
+        value: postgres
+      - key: N8N_DB_POSTGRESDB_HOST
+        fromService: supabase
+      - key: N8N_QUEUE_MODE
+        value: redis
+      - key: N8N_REDIS_HOST
+        fromService: redis
+    healthCheckPath: /healthz
+    autoDeploy: true
+    plan: starter
+    disk:
+      name: n8n-data
+      mountPath: /home/node/.n8n
+      sizeGB: 1
+
+  - type: redis
+    name: redis
+    plan: starter
+    ipAllowList: []
+    maxmemoryPolicy: noeviction 

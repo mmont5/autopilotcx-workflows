@@ -1,0 +1,15 @@
+{
+  "name": "preludeagent-test",
+  "version": "1.0.0",
+  "description": "Minimal test for PreludeAgent custom node",
+  "main": "index.js",
+  "n8n": {
+    "nodes": [
+      "PreludeAgent.node.js"
+    ]
+  },
+  "keywords": [
+    "n8n",
+    "n8n-custom-node"
+  ]
+} 

@@ -1,0 +1,43 @@
+{
+	"name": "autopilotcx-custom-nodes",
+	"version": "1.0.0",
+	"description": "Custom nodes for AutopilotCX N8N workflow engine",
+	"main": "index.js",
+	"scripts": {
+		"build": "npx tsc",
+		"dev": "tsc --watch",
+		"clean": "rimraf dist"
+	},
+	"n8n": {
+		"nodes": [
+			"dist/ArrangerAgent.node.js",
+			"dist/BeatAgent.node.js",
+			"dist/CadenceAgent.node.js",
+			"dist/ComposerAgent.node.js",
+			"dist/EnsembleAgent.node.js",
+			"dist/HarmonyAgent.node.js",
+			"dist/HumanAgent.node.js",
+			"dist/LyricistAgent.node.js",
+			"dist/MaestroAgent.node.js",
+			"dist/MaestroTrainerAgent.node.js",
+			"dist/MedleyAgent.node.js",
+			"dist/OvertureAgent.node.js",
+			"dist/PreludeAgent.node.js",
+			"dist/ResonanceAgent.node.js",
+			"dist/RhythmAgent.node.js",
+			"dist/ScoreAgent.node.js",
+			"dist/SiteAgent.node.js",
+			"dist/VirtuosoAgent.node.js"
+		]
+	},
+	"dependencies": {
+		"n8n-workflow": "^1.98.0",
+		"@radix-ui/react-avatar": "^1.1.10",
+		"node-fetch": "^2.6.7"
+	},
+	"devDependencies": {
+		"typescript": "^5.0.0",
+		"@types/node": "^18.0.0",
+		"@types/node-fetch": "^2.6.4"
+	}
+}

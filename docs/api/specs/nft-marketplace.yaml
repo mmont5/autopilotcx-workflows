@@ -1,0 +1,606 @@
+openapi: 3.0.0
+info:
+  title: Megarray NFT Marketplace API
+  description: API for NFT trading and marketplace functionality
+  version: 1.0.0
+  contact:
+    name: Megarray Support
+    email: support@megarray.ai
+    url: https://megarray.ai/support
+
+servers:
+  - url: http://localhost:9200
+    description: Local development server
+  - url: https://api.megarray.ai/marketplace
+    description: Production server
+
+security:
+  - BearerAuth: []
+  - ApiKeyAuth: []
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        detail:
+          type: string
+          description: Error message
+        code:
+          type: string
+          description: Error code
+        timestamp:
+          type: string
+          format: date-time
+          description: When the error occurred
+
+    Listing:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the listing
+        nft_id:
+          type: string
+          format: uuid
+          description: Associated NFT ID
+        seller_address:
+          type: string
+          description: Seller's wallet address
+        price:
+          type: string
+          description: Listing price in ETH
+        currency:
+          type: string
+          enum: [eth, usdc, usdt]
+          description: Currency for the listing
+        status:
+          type: string
+          enum: [active, sold, cancelled]
+          description: Current status of the listing
+        type:
+          type: string
+          enum: [fixed_price, auction]
+          description: Listing type
+        auction_end:
+          type: string
+          format: date-time
+          description: Auction end time
+        created_at:
+          type: string
+          format: date-time
+          description: When the listing was created
+        updated_at:
+          type: string
+          format: date-time
+          description: When the listing was last updated
+        metadata:
+          type: object
+          properties:
+            team_id:
+              type: string
+              description: Team ID
+            user_id:
+              type: string
+              description: User ID
+            collection_id:
+              type: string
+              description: Collection ID
+            royalty_percentage:
+              type: number
+              format: float
+              description: Royalty percentage
+            platform_fee:
+              type: number
+              format: float
+              description: Platform fee percentage
+
+    ListingRequest:
+      type: object
+      required:
+        - nft_id
+        - price
+        - type
+      properties:
+        nft_id:
+          type: string
+          format: uuid
+          description: NFT ID to list
+        price:
+          type: string
+          description: Listing price in ETH
+        currency:
+          type: string
+          enum: [eth, usdc, usdt]
+          description: Currency for the listing
+        type:
+          type: string
+          enum: [fixed_price, auction]
+          description: Listing type
+        auction_end:
+          type: string
+          format: date-time
+          description: Auction end time
+        metadata:
+          type: object
+          properties:
+            team_id:
+              type: string
+              description: Team ID
+            user_id:
+              type: string
+              description: User ID
+
+    Offer:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the offer
+        listing_id:
+          type: string
+          format: uuid
+          description: Associated listing ID
+        buyer_address:
+          type: string
+          description: Buyer's wallet address
+        price:
+          type: string
+          description: Offer price in ETH
+        currency:
+          type: string
+          enum: [eth, usdc, usdt]
+          description: Currency for the offer
+        status:
+          type: string
+          enum: [pending, accepted, rejected, cancelled]
+          description: Current status of the offer
+        created_at:
+          type: string
+          format: date-time
+          description: When the offer was created
+        updated_at:
+          type: string
+          format: date-time
+          description: When the offer was last updated
+        metadata:
+          type: object
+          properties:
+            team_id:
+              type: string
+              description: Team ID
+            user_id:
+              type: string
+              description: User ID
+
+    OfferRequest:
+      type: object
+      required:
+        - listing_id
+        - price
+      properties:
+        listing_id:
+          type: string
+          format: uuid
+          description: Listing ID to make offer on
+        price:
+          type: string
+          description: Offer price in ETH
+        currency:
+          type: string
+          enum: [eth, usdc, usdt]
+          description: Currency for the offer
+        metadata:
+          type: object
+          properties:
+            team_id:
+              type: string
+              description: Team ID
+            user_id:
+              type: string
+              description: User ID
+
+paths:
+  /v1/listings:
+    post:
+      summary: Create listing
+      description: Create a new NFT listing
+      operationId: createListing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ListingRequest'
+      responses:
+        '201':
+          description: Listing created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Listing'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    get:
+      summary: List listings
+      description: List NFT listings with optional filtering
+      operationId: listListings
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, sold, cancelled]
+          description: Filter by listing status
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [fixed_price, auction]
+          description: Filter by listing type
+        - name: collection_id
+          in: query
+          schema:
+            type: string
+          description: Filter by collection ID
+        - name: seller_address
+          in: query
+          schema:
+            type: string
+          description: Filter by seller address
+        - name: min_price
+          in: query
+          schema:
+            type: string
+          description: Filter by minimum price
+        - name: max_price
+          in: query
+          schema:
+            type: string
+          description: Filter by maximum price
+        - name: currency
+          in: query
+          schema:
+            type: string
+            enum: [eth, usdc, usdt]
+          description: Filter by currency
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+          description: Number of listings to return
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Number of listings to skip
+      responses:
+        '200':
+          description: Listings retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  listings:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Listing'
+                  total:
+                    type: integer
+                    description: Total number of listings
+                  limit:
+                    type: integer
+                    description: Number of listings per page
+                  offset:
+                    type: integer
+                    description: Number of listings skipped
+
+  /v1/listings/{listing_id}:
+    get:
+      summary: Get listing details
+      description: Get details of a specific listing
+      operationId: getListing
+      parameters:
+        - name: listing_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID of the listing
+      responses:
+        '200':
+          description: Listing details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Listing'
+        '404':
+          description: Listing not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      summary: Cancel listing
+      description: Cancel an existing listing
+      operationId: cancelListing
+      parameters:
+        - name: listing_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID of the listing
+      responses:
+        '204':
+          description: Listing cancelled successfully
+        '404':
+          description: Listing not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/listings/{listing_id}/offers:
+    post:
+      summary: Create offer
+      description: Create a new offer for a listing
+      operationId: createOffer
+      parameters:
+        - name: listing_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID of the listing
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OfferRequest'
+      responses:
+        '201':
+          description: Offer created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Offer'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    get:
+      summary: List offers
+      description: List offers for a listing
+      operationId: listOffers
+      parameters:
+        - name: listing_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID of the listing
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, accepted, rejected, cancelled]
+          description: Filter by offer status
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+          description: Number of offers to return
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Number of offers to skip
+      responses:
+        '200':
+          description: Offers retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  offers:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Offer'
+                  total:
+                    type: integer
+                    description: Total number of offers
+                  limit:
+                    type: integer
+                    description: Number of offers per page
+                  offset:
+                    type: integer
+                    description: Number of offers skipped
+
+  /v1/offers/{offer_id}:
+    get:
+      summary: Get offer details
+      description: Get details of a specific offer
+      operationId: getOffer
+      parameters:
+        - name: offer_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID of the offer
+      responses:
+        '200':
+          description: Offer details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Offer'
+        '404':
+          description: Offer not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    patch:
+      summary: Update offer
+      description: Update an existing offer
+      operationId: updateOffer
+      parameters:
+        - name: offer_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID of the offer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - status
+              properties:
+                status:
+                  type: string
+                  enum: [accepted, rejected, cancelled]
+                  description: New status for the offer
+      responses:
+        '200':
+          description: Offer updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Offer'
+        '404':
+          description: Offer not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /health:
+    get:
+      summary: Health check
+      description: Check the health status of the NFT marketplace service
+      operationId: checkHealth
+      responses:
+        '200':
+          description: NFT marketplace service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+                  version:
+                    type: string
+                  uptime:
+                    type: number
+                    format: float
+                  memory_usage:
+                    type: number
+                    format: float
+                    description: Memory usage in MB
+                  metrics:
+                    type: object
+                    properties:
+                      total_listings:
+                        type: integer
+                        description: Total number of listings
+                      active_listings:
+                        type: integer
+                        description: Number of active listings
+                      total_offers:
+                        type: integer
+                        description: Total number of offers
+                      pending_offers:
+                        type: integer
+                        description: Number of pending offers
+                      average_latency:
+                        type: number
+                        format: float
+                        description: Average processing time in ms
+                      error_rate:
+                        type: number
+                        format: float
+                        description: Error rate percentage
+                      listing_type_distribution:
+                        type: object
+                        properties:
+                          fixed_price:
+                            type: integer
+                            description: Number of fixed price listings
+                          auction:
+                            type: integer
+                            description: Number of auction listings
+                      currency_distribution:
+                        type: object
+                        properties:
+                          eth:
+                            type: integer
+                            description: Number of ETH listings
+                          usdc:
+                            type: integer
+                            description: Number of USDC listings
+                          usdt:
+                            type: integer
+                            description: Number of USDT listings
+        '503':
+          description: NFT marketplace service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error' 

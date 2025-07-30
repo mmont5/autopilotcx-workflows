@@ -1,0 +1,531 @@
+openapi: 3.0.0
+info:
+  title: Megarray Scheduler Worker API
+  description: API for managing scheduled tasks and PgCron jobs
+  version: 1.0.0
+  contact:
+    name: Megarray Support
+    email: support@megarray.ai
+    url: https://megarray.ai/support
+
+servers:
+  - url: http://localhost:8800
+    description: Local development server
+  - url: https://api.megarray.ai/scheduler
+    description: Production server
+
+security:
+  - BearerAuth: []
+  - ApiKeyAuth: []
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        detail:
+          type: string
+          description: Error message
+        code:
+          type: string
+          description: Error code
+        timestamp:
+          type: string
+          format: date-time
+          description: When the error occurred
+
+    Schedule:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the schedule
+        name:
+          type: string
+          description: Name of the schedule
+        description:
+          type: string
+          description: Description of the schedule
+        cron_expression:
+          type: string
+          description: Cron expression for scheduling
+        task_type:
+          type: string
+          enum: [content_generation, social_post, analytics, webhook]
+          description: Type of task to execute
+        task_config:
+          type: object
+          description: Configuration for the task
+        status:
+          type: string
+          enum: [active, paused, completed, failed]
+          description: Current status of the schedule
+        next_run:
+          type: string
+          format: date-time
+          description: Next scheduled run time
+        last_run:
+          type: string
+          format: date-time
+          description: Last run time
+        created_at:
+          type: string
+          format: date-time
+          description: When the schedule was created
+        updated_at:
+          type: string
+          format: date-time
+          description: When the schedule was last updated
+        metadata:
+          type: object
+          properties:
+            team_id:
+              type: string
+              description: Team ID
+            user_id:
+              type: string
+              description: User ID
+            priority:
+              type: integer
+              description: Task priority (1-5)
+            retry_count:
+              type: integer
+              description: Number of retry attempts
+            max_retries:
+              type: integer
+              description: Maximum number of retries
+            timeout:
+              type: integer
+              description: Task timeout in seconds
+
+    ScheduleRequest:
+      type: object
+      required:
+        - name
+        - cron_expression
+        - task_type
+        - task_config
+      properties:
+        name:
+          type: string
+          description: Name of the schedule
+        description:
+          type: string
+          description: Description of the schedule
+        cron_expression:
+          type: string
+          description: Cron expression for scheduling
+        task_type:
+          type: string
+          enum: [content_generation, social_post, analytics, webhook]
+          description: Type of task to execute
+        task_config:
+          type: object
+          description: Configuration for the task
+        metadata:
+          type: object
+          properties:
+            team_id:
+              type: string
+              description: Team ID
+            user_id:
+              type: string
+              description: User ID
+            priority:
+              type: integer
+              description: Task priority (1-5)
+            max_retries:
+              type: integer
+              description: Maximum number of retries
+            timeout:
+              type: integer
+              description: Task timeout in seconds
+
+    Execution:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the execution
+        schedule_id:
+          type: string
+          format: uuid
+          description: ID of the associated schedule
+        status:
+          type: string
+          enum: [pending, running, completed, failed]
+          description: Current status of the execution
+        started_at:
+          type: string
+          format: date-time
+          description: When the execution started
+        completed_at:
+          type: string
+          format: date-time
+          description: When the execution completed
+        result:
+          type: object
+          description: Execution result data
+        error:
+          type: string
+          description: Error message if execution failed
+        metadata:
+          type: object
+          properties:
+            team_id:
+              type: string
+              description: Team ID
+            user_id:
+              type: string
+              description: User ID
+            retry_count:
+              type: integer
+              description: Number of retry attempts
+            duration:
+              type: number
+              format: float
+              description: Execution duration in seconds
+            resource_usage:
+              type: object
+              properties:
+                cpu:
+                  type: number
+                  format: float
+                  description: CPU usage percentage
+                memory:
+                  type: number
+                  format: float
+                  description: Memory usage in MB
+
+paths:
+  /v1/schedules:
+    post:
+      summary: Create a new schedule
+      description: Create a new scheduled task
+      operationId: createSchedule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScheduleRequest'
+      responses:
+        '201':
+          description: Schedule created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Schedule'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    get:
+      summary: List schedules
+      description: List all schedules with optional filtering
+      operationId: listSchedules
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, paused, completed, failed]
+          description: Filter by status
+        - name: task_type
+          in: query
+          schema:
+            type: string
+            enum: [content_generation, social_post, analytics, webhook]
+          description: Filter by task type
+        - name: team_id
+          in: query
+          schema:
+            type: string
+          description: Filter by team ID
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+          description: Number of schedules to return
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Number of schedules to skip
+      responses:
+        '200':
+          description: Schedules retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  schedules:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Schedule'
+                  total:
+                    type: integer
+                    description: Total number of schedules
+                  limit:
+                    type: integer
+                    description: Number of schedules per page
+                  offset:
+                    type: integer
+                    description: Number of schedules skipped
+
+  /v1/schedules/{schedule_id}:
+    get:
+      summary: Get schedule details
+      description: Get details of a specific schedule
+      operationId: getSchedule
+      parameters:
+        - name: schedule_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID of the schedule
+      responses:
+        '200':
+          description: Schedule details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Schedule'
+        '404':
+          description: Schedule not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    patch:
+      summary: Update schedule
+      description: Update an existing schedule
+      operationId: updateSchedule
+      parameters:
+        - name: schedule_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID of the schedule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScheduleRequest'
+      responses:
+        '200':
+          description: Schedule updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Schedule'
+        '404':
+          description: Schedule not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      summary: Delete schedule
+      description: Delete an existing schedule
+      operationId: deleteSchedule
+      parameters:
+        - name: schedule_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID of the schedule
+      responses:
+        '204':
+          description: Schedule deleted successfully
+        '404':
+          description: Schedule not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/schedules/{schedule_id}/executions:
+    get:
+      summary: List schedule executions
+      description: List executions for a specific schedule
+      operationId: listScheduleExecutions
+      parameters:
+        - name: schedule_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID of the schedule
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, running, completed, failed]
+          description: Filter by execution status
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+          description: Number of executions to return
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Number of executions to skip
+      responses:
+        '200':
+          description: Executions retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  executions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Execution'
+                  total:
+                    type: integer
+                    description: Total number of executions
+                  limit:
+                    type: integer
+                    description: Number of executions per page
+                  offset:
+                    type: integer
+                    description: Number of executions skipped
+
+  /v1/executions/{execution_id}:
+    get:
+      summary: Get execution details
+      description: Get details of a specific execution
+      operationId: getExecution
+      parameters:
+        - name: execution_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID of the execution
+      responses:
+        '200':
+          description: Execution details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Execution'
+        '404':
+          description: Execution not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /health:
+    get:
+      summary: Health check
+      description: Check the health status of the scheduler worker service
+      operationId: checkHealth
+      responses:
+        '200':
+          description: Scheduler worker service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+                  version:
+                    type: string
+                  uptime:
+                    type: number
+                    format: float
+                  memory_usage:
+                    type: number
+                    format: float
+                    description: Memory usage in MB
+                  metrics:
+                    type: object
+                    properties:
+                      total_schedules:
+                        type: integer
+                        description: Total number of schedules
+                      active_schedules:
+                        type: integer
+                        description: Number of active schedules
+                      total_executions:
+                        type: integer
+                        description: Total number of executions
+                      running_executions:
+                        type: integer
+                        description: Number of running executions
+                      average_latency:
+                        type: number
+                        format: float
+                        description: Average execution time in ms
+                      error_rate:
+                        type: number
+                        format: float
+                        description: Error rate percentage
+                      task_type_distribution:
+                        type: object
+                        properties:
+                          content_generation:
+                            type: integer
+                            description: Number of content generation tasks
+                          social_post:
+                            type: integer
+                            description: Number of social post tasks
+                          analytics:
+                            type: integer
+                            description: Number of analytics tasks
+                          webhook:
+                            type: integer
+                            description: Number of webhook tasks
+        '503':
+          description: Scheduler worker service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error' 

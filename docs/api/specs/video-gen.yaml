@@ -1,0 +1,453 @@
+openapi: 3.0.0
+info:
+  title: Megarray Video Generation API
+  description: API for Stable Video Diffusion video generation
+  version: 1.0.0
+  contact:
+    name: Megarray Support
+    email: support@megarray.ai
+    url: https://megarray.ai/support
+
+servers:
+  - url: http://localhost:8500
+    description: Local development server
+  - url: https://api.megarray.ai/video
+    description: Production server
+
+security:
+  - BearerAuth: []
+  - ApiKeyAuth: []
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        detail:
+          type: string
+          description: Error message
+        code:
+          type: string
+          description: Error code
+        timestamp:
+          type: string
+          format: date-time
+          description: When the error occurred
+
+    Video:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Video ID
+        url:
+          type: string
+          format: uri
+          description: Video URL
+        thumbnail_url:
+          type: string
+          format: uri
+          description: Thumbnail URL
+        width:
+          type: integer
+          description: Video width in pixels
+        height:
+          type: integer
+          description: Video height in pixels
+        duration:
+          type: number
+          format: float
+          description: Video duration in seconds
+        fps:
+          type: integer
+          description: Frames per second
+        model:
+          type: string
+          description: Model name
+        created_at:
+          type: string
+          format: date-time
+          description: When the video was created
+        metadata:
+          type: object
+          properties:
+            team_id:
+              type: string
+              description: Team ID
+            user_id:
+              type: string
+              description: User ID
+            session_id:
+              type: string
+              description: Session ID
+            prompt:
+              type: string
+              description: Generation prompt
+            negative_prompt:
+              type: string
+              description: Negative prompt
+            seed:
+              type: integer
+              description: Random seed used
+            steps:
+              type: integer
+              description: Number of diffusion steps
+            cfg_scale:
+              type: number
+              format: float
+              description: CFG scale used
+            motion_bucket_id:
+              type: integer
+              description: Motion bucket ID
+            fps_id:
+              type: integer
+              description: FPS ID
+            style:
+              type: string
+              description: Style preset used
+
+    VideoRequest:
+      type: object
+      required:
+        - prompt
+      properties:
+        prompt:
+          type: string
+          description: Video generation prompt
+        negative_prompt:
+          type: string
+          description: Negative prompt
+        width:
+          type: integer
+          default: 1024
+          minimum: 512
+          maximum: 2048
+          description: Video width in pixels
+        height:
+          type: integer
+          default: 576
+          minimum: 288
+          maximum: 1152
+          description: Video height in pixels
+        duration:
+          type: number
+          format: float
+          default: 4.0
+          minimum: 1.0
+          maximum: 8.0
+          description: Video duration in seconds
+        fps:
+          type: integer
+          default: 24
+          enum: [8, 16, 24, 30]
+          description: Frames per second
+        steps:
+          type: integer
+          default: 30
+          minimum: 10
+          maximum: 50
+          description: Number of diffusion steps
+        cfg_scale:
+          type: number
+          format: float
+          default: 7.0
+          minimum: 1.0
+          maximum: 20.0
+          description: CFG scale
+        motion_bucket_id:
+          type: integer
+          default: 127
+          minimum: 1
+          maximum: 255
+          description: Motion bucket ID
+        seed:
+          type: integer
+          description: Random seed
+        style:
+          type: string
+          enum: [none, cinematic, animation, documentary, vlog]
+          default: none
+          description: Style preset to use
+        metadata:
+          type: object
+          properties:
+            team_id:
+              type: string
+              description: Team ID
+            user_id:
+              type: string
+              description: User ID
+            session_id:
+              type: string
+              description: Session ID
+
+    VideoBatchRequest:
+      type: object
+      required:
+        - requests
+      properties:
+        requests:
+          type: array
+          items:
+            $ref: '#/components/schemas/VideoRequest'
+          description: List of video generation requests
+
+    VideoBatchResponse:
+      type: object
+      properties:
+        videos:
+          type: array
+          items:
+            $ref: '#/components/schemas/Video'
+          description: List of generated videos
+
+paths:
+  /v1/videos:
+    post:
+      summary: Generate video
+      description: Generate a video using Stable Video Diffusion
+      operationId: generateVideo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VideoRequest'
+      responses:
+        '200':
+          description: Video generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Video'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/videos/batch:
+    post:
+      summary: Generate batch videos
+      description: Generate multiple videos in one request
+      operationId: generateBatchVideos
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VideoBatchRequest'
+      responses:
+        '200':
+          description: Videos generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VideoBatchResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/videos/{video_id}:
+    get:
+      summary: Get video
+      description: Get details of a specific video
+      operationId: getVideo
+      parameters:
+        - name: video_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Video retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Video'
+        '404':
+          description: Video not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/styles:
+    get:
+      summary: List styles
+      description: Get list of available style presets
+      operationId: listStyles
+      responses:
+        '200':
+          description: Styles retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  styles:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          description: Style ID
+                        name:
+                          type: string
+                          description: Style name
+                        description:
+                          type: string
+                          description: Style description
+                        preview_url:
+                          type: string
+                          format: uri
+                          description: Preview video URL
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /health:
+    get:
+      summary: Health check
+      description: Check the health status of the video generation service
+      operationId: checkHealth
+      responses:
+        '200':
+          description: Video generation service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+                  version:
+                    type: string
+                  uptime:
+                    type: number
+                    format: float
+                  memory_usage:
+                    type: number
+                    format: float
+                    description: Memory usage in MB
+                  gpu_usage:
+                    type: number
+                    format: float
+                    description: GPU usage percentage
+                  metrics:
+                    type: object
+                    properties:
+                      total_requests:
+                        type: integer
+                        description: Total number of requests
+                      total_videos:
+                        type: integer
+                        description: Total number of videos generated
+                      average_latency:
+                        type: number
+                        format: float
+                        description: Average response time in ms
+                      error_rate:
+                        type: number
+                        format: float
+                        description: Error rate percentage
+                      style_distribution:
+                        type: object
+                        properties:
+                          none:
+                            type: integer
+                            description: Number of videos with no style
+                          cinematic:
+                            type: integer
+                            description: Number of cinematic style videos
+                          animation:
+                            type: integer
+                            description: Number of animation style videos
+                          documentary:
+                            type: integer
+                            description: Number of documentary style videos
+                          vlog:
+                            type: integer
+                            description: Number of vlog style videos
+                      resolution_distribution:
+                        type: object
+                        properties:
+                          "720p":
+                            type: integer
+                            description: Number of 720p videos
+                          "1080p":
+                            type: integer
+                            description: Number of 1080p videos
+                      duration_distribution:
+                        type: object
+                        properties:
+                          "1-2s":
+                            type: integer
+                            description: Number of 1-2 second videos
+                          "2-4s":
+                            type: integer
+                            description: Number of 2-4 second videos
+                          "4-6s":
+                            type: integer
+                            description: Number of 4-6 second videos
+                          "6-8s":
+                            type: integer
+                            description: Number of 6-8 second videos
+        '503':
+          description: Video generation service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error' 

@@ -1,0 +1,18 @@
+{
+  "branding": {
+    "name": "AutopilotCX",
+    "logo": "/images/autopilotcx-logo.svg",
+    "favicon": "/images/autopilotcx-favicon.ico"
+  },
+  "ui": {
+    "title": "AutopilotCX",
+    "header": {
+      "title": "AutopilotCX",
+      "subtitle": "Workflow Automation"
+    }
+  },
+  "customNodes": {
+    "directory": "./nodes",
+    "credentials": "./credentials"
+  }
+} 

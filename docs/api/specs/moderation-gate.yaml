@@ -1,0 +1,436 @@
+openapi: 3.0.0
+info:
+  title: Megarray Moderation Gate API
+  description: API for content moderation using Detoxify, NudeNet, and OpenNSFW 2
+  version: 1.0.0
+  contact:
+    name: Megarray Support
+    email: support@megarray.ai
+    url: https://megarray.ai/support
+
+servers:
+  - url: http://localhost:8600
+    description: Local development server
+  - url: https://api.megarray.ai/moderation
+    description: Production server
+
+security:
+  - BearerAuth: []
+  - ApiKeyAuth: []
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        detail:
+          type: string
+          description: Error message
+        code:
+          type: string
+          description: Error code
+        timestamp:
+          type: string
+          format: date-time
+          description: When the error occurred
+
+    ModerationResult:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Moderation result ID
+        content_id:
+          type: string
+          description: ID of the moderated content
+        content_type:
+          type: string
+          enum: [text, image, video]
+          description: Type of content moderated
+        status:
+          type: string
+          enum: [approved, rejected, flagged]
+          description: Moderation status
+        scores:
+          type: object
+          properties:
+            toxicity:
+              type: number
+              format: float
+              description: Toxicity score from Detoxify
+            nudity:
+              type: number
+              format: float
+              description: Nudity score from NudeNet
+            nsfw:
+              type: number
+              format: float
+              description: NSFW score from OpenNSFW 2
+            violence:
+              type: number
+              format: float
+              description: Violence score
+            hate_speech:
+              type: number
+              format: float
+              description: Hate speech score
+        flags:
+          type: array
+          items:
+            type: string
+          description: List of flagged categories
+        created_at:
+          type: string
+          format: date-time
+          description: When the moderation was performed
+        metadata:
+          type: object
+          properties:
+            team_id:
+              type: string
+              description: Team ID
+            user_id:
+              type: string
+              description: User ID
+            session_id:
+              type: string
+              description: Session ID
+            model_versions:
+              type: object
+              properties:
+                detoxify:
+                  type: string
+                  description: Detoxify model version
+                nudenet:
+                  type: string
+                  description: NudeNet model version
+                nsfw:
+                  type: string
+                  description: OpenNSFW 2 model version
+            processing_time:
+              type: number
+              format: float
+              description: Processing time in seconds
+
+    ModerationRequest:
+      type: object
+      required:
+        - content
+        - content_type
+      properties:
+        content:
+          type: string
+          description: Content to moderate (text or URL)
+        content_type:
+          type: string
+          enum: [text, image, video]
+          description: Type of content
+        threshold:
+          type: number
+          format: float
+          default: 0.7
+          minimum: 0.0
+          maximum: 1.0
+          description: Moderation threshold
+        metadata:
+          type: object
+          properties:
+            team_id:
+              type: string
+              description: Team ID
+            user_id:
+              type: string
+              description: User ID
+            session_id:
+              type: string
+              description: Session ID
+
+    ModerationBatchRequest:
+      type: object
+      required:
+        - requests
+      properties:
+        requests:
+          type: array
+          items:
+            $ref: '#/components/schemas/ModerationRequest'
+          description: List of moderation requests
+
+    ModerationBatchResponse:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ModerationResult'
+          description: List of moderation results
+
+paths:
+  /v1/moderate:
+    post:
+      summary: Moderate content
+      description: Moderate content using multiple models
+      operationId: moderateContent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModerationRequest'
+      responses:
+        '200':
+          description: Content moderated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModerationResult'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/moderate/batch:
+    post:
+      summary: Moderate batch content
+      description: Moderate multiple content items in one request
+      operationId: moderateBatchContent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModerationBatchRequest'
+      responses:
+        '200':
+          description: Content moderated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModerationBatchResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/moderate/{result_id}:
+    get:
+      summary: Get moderation result
+      description: Get details of a specific moderation result
+      operationId: getModerationResult
+      parameters:
+        - name: result_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Moderation result retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModerationResult'
+        '404':
+          description: Moderation result not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/models:
+    get:
+      summary: List models
+      description: Get list of available moderation models
+      operationId: listModels
+      responses:
+        '200':
+          description: Models retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  models:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          description: Model ID
+                        name:
+                          type: string
+                          description: Model name
+                        description:
+                          type: string
+                          description: Model description
+                        version:
+                          type: string
+                          description: Model version
+                        supported_content_types:
+                          type: array
+                          items:
+                            type: string
+                          description: Supported content types
+                        metrics:
+                          type: object
+                          properties:
+                            accuracy:
+                              type: number
+                              format: float
+                              description: Model accuracy
+                            precision:
+                              type: number
+                              format: float
+                              description: Model precision
+                            recall:
+                              type: number
+                              format: float
+                              description: Model recall
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /health:
+    get:
+      summary: Health check
+      description: Check the health status of the moderation service
+      operationId: checkHealth
+      responses:
+        '200':
+          description: Moderation service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+                  version:
+                    type: string
+                  uptime:
+                    type: number
+                    format: float
+                  memory_usage:
+                    type: number
+                    format: float
+                    description: Memory usage in MB
+                  gpu_usage:
+                    type: number
+                    format: float
+                    description: GPU usage percentage
+                  metrics:
+                    type: object
+                    properties:
+                      total_requests:
+                        type: integer
+                        description: Total number of requests
+                      total_content:
+                        type: integer
+                        description: Total number of content items moderated
+                      average_latency:
+                        type: number
+                        format: float
+                        description: Average response time in ms
+                      error_rate:
+                        type: number
+                        format: float
+                        description: Error rate percentage
+                      content_type_distribution:
+                        type: object
+                        properties:
+                          text:
+                            type: integer
+                            description: Number of text items
+                          image:
+                            type: integer
+                            description: Number of images
+                          video:
+                            type: integer
+                            description: Number of videos
+                      status_distribution:
+                        type: object
+                        properties:
+                          approved:
+                            type: integer
+                            description: Number of approved items
+                          rejected:
+                            type: integer
+                            description: Number of rejected items
+                          flagged:
+                            type: integer
+                            description: Number of flagged items
+                      flag_distribution:
+                        type: object
+                        properties:
+                          toxicity:
+                            type: integer
+                            description: Number of toxicity flags
+                          nudity:
+                            type: integer
+                            description: Number of nudity flags
+                          nsfw:
+                            type: integer
+                            description: Number of NSFW flags
+                          violence:
+                            type: integer
+                            description: Number of violence flags
+                          hate_speech:
+                            type: integer
+                            description: Number of hate speech flags
+        '503':
+          description: Moderation service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error' 

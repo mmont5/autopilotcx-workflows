@@ -1,0 +1,665 @@
+openapi: 3.0.0
+info:
+  title: Megarray API Gateway
+  description: API Gateway service for request routing, authentication, and rate limiting
+  version: 1.0.0
+  contact:
+    name: Megarray Support
+    email: support@megarray.ai
+    url: https://megarray.ai/support
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+  - url: https://api.megarray.ai
+    description: Production server
+
+security:
+  - BearerAuth: []
+  - ApiKeyAuth: []
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        detail:
+          type: string
+          description: Error message
+        code:
+          type: string
+          description: Error code
+        timestamp:
+          type: string
+          format: date-time
+          description: When the error occurred
+
+    Route:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Route ID
+        path:
+          type: string
+          description: API path pattern
+        method:
+          type: string
+          enum: [GET, POST, PUT, PATCH, DELETE]
+          description: HTTP method
+        service:
+          type: string
+          description: Target service name
+        endpoint:
+          type: string
+          description: Target service endpoint
+        rate_limit:
+          type: object
+          properties:
+            requests:
+              type: integer
+              description: Number of requests allowed
+            period:
+              type: string
+              description: Time period (e.g., 1s, 1m, 1h)
+        auth_required:
+          type: boolean
+          description: Whether authentication is required
+        created_at:
+          type: string
+          format: date-time
+          description: When the route was created
+        updated_at:
+          type: string
+          format: date-time
+          description: When the route was last updated
+        metadata:
+          type: object
+          properties:
+            tags:
+              type: array
+              items:
+                type: string
+              description: Route tags
+            description:
+              type: string
+              description: Route description
+            deprecated:
+              type: boolean
+              description: Whether the route is deprecated
+
+    RouteRequest:
+      type: object
+      required:
+        - path
+        - method
+        - service
+        - endpoint
+      properties:
+        path:
+          type: string
+          description: API path pattern
+        method:
+          type: string
+          enum: [GET, POST, PUT, PATCH, DELETE]
+          description: HTTP method
+        service:
+          type: string
+          description: Target service name
+        endpoint:
+          type: string
+          description: Target service endpoint
+        rate_limit:
+          type: object
+          properties:
+            requests:
+              type: integer
+              default: 100
+              description: Number of requests allowed
+            period:
+              type: string
+              default: 1m
+              description: Time period (e.g., 1s, 1m, 1h)
+        auth_required:
+          type: boolean
+          default: true
+          description: Whether authentication is required
+        metadata:
+          type: object
+          properties:
+            tags:
+              type: array
+              items:
+                type: string
+              description: Route tags
+            description:
+              type: string
+              description: Route description
+            deprecated:
+              type: boolean
+              default: false
+              description: Whether the route is deprecated
+
+    Service:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Service name
+        url:
+          type: string
+          description: Service URL
+        status:
+          type: string
+          enum: [healthy, unhealthy, unknown]
+          description: Service health status
+        last_check:
+          type: string
+          format: date-time
+          description: Last health check time
+        metadata:
+          type: object
+          properties:
+            version:
+              type: string
+              description: Service version
+            environment:
+              type: string
+              enum: [development, staging, production]
+              description: Environment
+            tags:
+              type: array
+              items:
+                type: string
+              description: Service tags
+
+    ServiceRequest:
+      type: object
+      required:
+        - name
+        - url
+      properties:
+        name:
+          type: string
+          description: Service name
+        url:
+          type: string
+          description: Service URL
+        metadata:
+          type: object
+          properties:
+            version:
+              type: string
+              description: Service version
+            environment:
+              type: string
+              enum: [development, staging, production]
+              description: Environment
+            tags:
+              type: array
+              items:
+                type: string
+              description: Service tags
+
+paths:
+  /v1/routes:
+    post:
+      summary: Create route
+      description: Create a new API route
+      operationId: createRoute
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RouteRequest'
+      responses:
+        '201':
+          description: Route created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Route'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    get:
+      summary: List routes
+      description: Get list of API routes
+      operationId: listRoutes
+      parameters:
+        - name: service
+          in: query
+          schema:
+            type: string
+          description: Filter by service name
+        - name: method
+          in: query
+          schema:
+            type: string
+            enum: [GET, POST, PUT, PATCH, DELETE]
+          description: Filter by HTTP method
+        - name: auth_required
+          in: query
+          schema:
+            type: boolean
+          description: Filter by authentication requirement
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+          description: Number of items per page
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Page offset
+      responses:
+        '200':
+          description: Routes retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  routes:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Route'
+                  total:
+                    type: integer
+                    description: Total number of routes
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/routes/{route_id}:
+    get:
+      summary: Get route
+      description: Get details of a specific route
+      operationId: getRoute
+      parameters:
+        - name: route_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Route retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Route'
+        '404':
+          description: Route not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    patch:
+      summary: Update route
+      description: Update a specific route
+      operationId: updateRoute
+      parameters:
+        - name: route_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RouteRequest'
+      responses:
+        '200':
+          description: Route updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Route'
+        '404':
+          description: Route not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      summary: Delete route
+      description: Delete a specific route
+      operationId: deleteRoute
+      parameters:
+        - name: route_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Route deleted successfully
+        '404':
+          description: Route not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/services:
+    post:
+      summary: Register service
+      description: Register a new service
+      operationId: registerService
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServiceRequest'
+      responses:
+        '201':
+          description: Service registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Service'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    get:
+      summary: List services
+      description: Get list of registered services
+      operationId: listServices
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [healthy, unhealthy, unknown]
+          description: Filter by health status
+        - name: environment
+          in: query
+          schema:
+            type: string
+            enum: [development, staging, production]
+          description: Filter by environment
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+          description: Number of items per page
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Page offset
+      responses:
+        '200':
+          description: Services retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  services:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Service'
+                  total:
+                    type: integer
+                    description: Total number of services
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /v1/services/{service_name}:
+    get:
+      summary: Get service
+      description: Get details of a specific service
+      operationId: getService
+      parameters:
+        - name: service_name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Service retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Service'
+        '404':
+          description: Service not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    patch:
+      summary: Update service
+      description: Update a specific service
+      operationId: updateService
+      parameters:
+        - name: service_name
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServiceRequest'
+      responses:
+        '200':
+          description: Service updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Service'
+        '404':
+          description: Service not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      summary: Unregister service
+      description: Unregister a specific service
+      operationId: unregisterService
+      parameters:
+        - name: service_name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Service unregistered successfully
+        '404':
+          description: Service not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /health:
+    get:
+      summary: Health check
+      description: Check the health status of the API gateway
+      operationId: checkHealth
+      responses:
+        '200':
+          description: API gateway is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+                  version:
+                    type: string
+                  uptime:
+                    type: number
+                    format: float
+                  memory_usage:
+                    type: number
+                    format: float
+                    description: Memory usage in MB
+                  cpu_usage:
+                    type: number
+                    format: float
+                    description: CPU usage percentage
+                  metrics:
+                    type: object
+                    properties:
+                      total_requests:
+                        type: integer
+                        description: Total number of requests
+                      total_routes:
+                        type: integer
+                        description: Total number of routes
+                      total_services:
+                        type: integer
+                        description: Total number of services
+                      average_latency:
+                        type: number
+                        format: float
+                        description: Average response time in ms
+                      error_rate:
+                        type: number
+                        format: float
+                        description: Error rate percentage
+                      rate_limit_hits:
+                        type: integer
+                        description: Number of rate limit hits
+                      auth_failures:
+                        type: integer
+                        description: Number of authentication failures
+                      service_status_distribution:
+                        type: object
+                        properties:
+                          healthy:
+                            type: integer
+                            description: Number of healthy services
+                          unhealthy:
+                            type: integer
+                            description: Number of unhealthy services
+                          unknown:
+                            type: integer
+                            description: Number of services with unknown status
+                      route_method_distribution:
+                        type: object
+                        properties:
+                          GET:
+                            type: integer
+                            description: Number of GET routes
+                          POST:
+                            type: integer
+                            description: Number of POST routes
+                          PUT:
+                            type: integer
+                            description: Number of PUT routes
+                          PATCH:
+                            type: integer
+                            description: Number of PATCH routes
+                          DELETE:
+                            type: integer
+                            description: Number of DELETE routes
+        '503':
+          description: API gateway is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error' 

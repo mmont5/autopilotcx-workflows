@@ -1,0 +1,216 @@
+{
+  "name": "Healthcare Demo Workflow - Simple & Working",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "healthcare-demo",
+        "options": {}
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [100, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// INTENT CLASSIFIER - Simple routing logic\nreturn items.map((item, i) => {\n  try {\n    const input = (item.json.message || \"\").toLowerCase();\n    let bookingState = $json.bookingState || \"\";\n    let bookingData = $json.bookingData || \"{}\";\n\n    console.log(\"🔧 DEBUG - Intent Classifier - Input:\", input);\n    console.log(\"🔧 DEBUG - Intent Classifier - Booking State:\", bookingState);\n\n    // CRITICAL: If in active booking session, ALWAYS route to Deterministic Booking Agent\n    if (bookingState && bookingState !== \"complete\" && bookingState !== \"\" && bookingState !== \"initial\") {\n      console.log(\"🔧 DEBUG - Intent Classifier - Active booking session, routing to Deterministic Booking Agent\");\n      return {\n        json: {\n          ...item.json,\n          intent: \"appointment\",\n          nextAgent: \"DeterministicBookingAgent\",\n          conversation_stage: \"booking_in_progress\",\n          bookingState,\n          bookingData\n        },\n        pairedItem: i\n      };\n    }\n\n    // Enhanced Intent detection\n    let detectedIntent = \"general\";\n    \n    if (input.includes(\"book\") || input.includes(\"appointment\") || input.includes(\"schedule\") || input.includes(\"visit\")) {\n      detectedIntent = \"appointment\";\n    } else if (input.includes(\"pain\") || input.includes(\"hurt\") || input.includes(\"symptom\") || input.includes(\"treatment\")) {\n      detectedIntent = \"clinical\";\n    } else if (input.includes(\"cost\") || input.includes(\"insurance\") || input.includes(\"billing\") || input.includes(\"payment\")) {\n      detectedIntent = \"billing\";\n    } else if (input.includes(\"feedback\") || input.includes(\"complaint\") || input.includes(\"review\")) {\n      detectedIntent = \"feedback\";\n    } else if (input.includes(\"emergency\") || input.includes(\"911\") || input.includes(\"urgent\")) {\n      detectedIntent = \"escalate\";\n    }\n\n    // Route to appropriate agent\n    let nextAgent = \"GeneralQAAgent\";\n    \n    switch (detectedIntent) {\n      case \"appointment\":\n        nextAgent = \"DeterministicBookingAgent\";\n        break;\n      case \"clinical\":\n        nextAgent = \"ClinicalQAAgent\";\n        break;\n      case \"billing\":\n        nextAgent = \"InsuranceBillingAgent\";\n        break;\n      case \"feedback\":\n        nextAgent = \"FeedbackSupportAgent\";\n        break;\n      case \"escalate\":\n        nextAgent = \"HumanAgent\";\n        break;\n      default:\n        nextAgent = \"GeneralQAAgent\";\n        break;\n    }\n\n    console.log(\"🔧 DEBUG - Intent Classifier - Detected Intent:\", detectedIntent);\n    console.log(\"🔧 DEBUG - Intent Classifier - Next Agent:\", nextAgent);\n\n    return {\n      json: {\n        ...item.json,\n        message: item.json.message,\n        intent: detectedIntent,\n        nextAgent,\n        conversation_stage: detectedIntent === \"appointment\" ? \"booking_start\" : \"\",\n        bookingState,\n        bookingData,\n        timestamp: new Date().toISOString()\n      },\n      pairedItem: i\n    };\n\n  } catch (error) {\n    console.error(\"Intent classifier error:\", error);\n    return {\n      json: {\n        ...item.json,\n        intent: \"general\",\n        nextAgent: \"GeneralQAAgent\",\n        bookingState: item.json.bookingState,\n        bookingData: item.json.bookingData\n      },\n      pairedItem: i\n    };\n  }\n});"
+      },
+      "name": "Intent Classifier",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [300, 300]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "rules": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "nextAgent",
+                    "leftValue": "={{ $json.nextAgent }}",
+                    "rightValue": "DeterministicBookingAgent",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "output": 0
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "nextAgent",
+                    "leftValue": "={{ $json.nextAgent }}",
+                    "rightValue": "ClinicalQAAgent",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "output": 1
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "nextAgent",
+                    "leftValue": "={{ $json.nextAgent }}",
+                    "rightValue": "InsuranceBillingAgent",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "output": 2
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "nextAgent",
+                    "leftValue": "={{ $json.nextAgent }}",
+                    "rightValue": "FeedbackSupportAgent",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "output": 3
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "id": "nextAgent",
+                    "leftValue": "={{ $json.nextAgent }}",
+                    "rightValue": "HumanAgent",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "output": 4
+            }
+          ]
+        }
+      },
+      "name": "Switch",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// DETERMINISTIC BOOKING AGENT - No LLMs\n// Simple state machine for reliable booking flow\n\nconsole.log(\"🚀 DETERMINISTIC BOOKING: Processing state:\", $json.bookingState);\n\nconst agentName = $json.agentName || \"Olivia\";\nconst companyName = $json.companyName || \"Hassan Spine & Sports Medicine\";\nlet bookingState = $json.bookingState || \"initial\";\nconst parsedBookingData = $json.bookingData ? JSON.parse($json.bookingData) : {};\nconst userInput = $json.message || $json.user_message || \"\";\nconst userAction = $json.userAction || \"\";\n\nconsole.log(\"🚀 DETERMINISTIC BOOKING - Input:\", userInput);\nconsole.log(\"🚀 DETERMINISTIC BOOKING - Action:\", userAction);\nconsole.log(\"🚀 DETERMINISTIC BOOKING - Current State:\", bookingState);\n\n// STATE MACHINE LOGIC\nlet response = \"\";\nlet suggestedActions = [];\nlet nextState = bookingState;\nlet updatedBookingData = { ...parsedBookingData };\n\n// RESPONSE VARIATIONS FOR HUMAN-LIKE INTERACTIONS\nconst responseVariations = {\n  welcome: [\n    `Hi there! I'm ${agentName}, and I'm here to help you get the care you need at ${companyName}. I understand you might be experiencing discomfort, so I want to make this process as gentle and quick as possible. I'm here to support you every step of the way.`,\n    `Hello! I'm ${agentName}, your care coordinator at ${companyName}. I know you may be in pain, and I want to help you get relief quickly. Let me guide you through booking your appointment in the most caring way possible.`,\n    `Hi! I'm ${agentName}, and I'm here to help you at ${companyName}. I understand this might be a difficult time, and I want to make booking your appointment as smooth and supportive as possible. I'm here for you.`\n  ],\n  patientType: [\n    \"I'd be happy to help you book your appointment. Are you a new patient or an existing patient? This helps me provide you with the most personalized care.\",\n    \"To give you the best care possible, I need to know if you're a new patient or an existing patient. This helps me prepare everything we need for your visit.\",\n    \"I want to make sure I have all the right information for you. Are you a new patient or an existing patient with us?\"\n  ],\n  nameRequest: [\n    \"Thank you! I'd love to help you get scheduled. What's your first name and last name? I want to make sure we have everything ready for your visit.\",\n    \"Perfect! To get you scheduled, I need your first name and last name. This helps us prepare your file and ensure a smooth check-in process.\",\n    \"Great! I'm here to help you get scheduled. Could you please share your first name and last name with me?\"\n  ],\n  locationSelection: [\n    \"Which location is most convenient for you? I want to make sure you can get to your appointment easily.\",\n    \"We have several locations to serve you better. Which one would work best for your schedule and location?\",\n    \"To help you get scheduled at the right place, which location would be most convenient for you?\"\n  ],\n  painLevel: [\n    \"I understand this might be difficult to talk about, and I want you to know that it's okay to share with me. I know you may be in pain, and I want to help you get relief quickly. On a scale of 1 to 10, how would you rate your pain level right now? I'm here to listen and help.\",\n    \"I know pain can be really challenging, and I want to help you get the care you need. On a scale of 1 to 10, how would you describe your pain level? This helps us understand how to best support you.\",\n    \"I understand pain can be overwhelming, and I'm here to help. On a scale of 1 to 10, how would you rate your current pain level? This information helps us provide the most appropriate care.\"\n  ],\n  symptoms: [\n    \"Thank you for sharing that with me. I know it can be difficult to talk about symptoms, and I appreciate you trusting me with this information. Could you tell me a bit more about what you're experiencing? I'm here to listen and help.\",\n    \"I understand this might be uncomfortable to discuss, and I want you to know I'm here to support you. Could you describe what symptoms you're experiencing? This helps us prepare for your visit.\",\n    \"Thank you for being open with me about your pain level. I know this can be difficult to talk about. Could you tell me more about what symptoms you're experiencing? I'm here to help.\"\n  ],\n  procedure: [\n    \"I want to make sure we get you scheduled for the right type of care. What procedure or treatment are you interested in? I'm here to help you understand your options.\",\n    \"To help you get the most appropriate care, what procedure or treatment are you looking for? I want to make sure we have everything ready for your visit.\",\n    \"I want to ensure you get the right care for your needs. What procedure or treatment are you interested in?\"\n  ],\n  insurance: [\n    \"I want to make sure we handle your insurance properly so you don't have any surprises. What insurance do you have? I'm here to help you understand your coverage.\",\n    \"To help you with insurance verification and avoid any billing issues, what insurance provider do you have? I want to make sure everything is set up correctly for you.\",\n    \"I want to ensure your insurance is properly handled. What insurance provider do you have? This helps us verify your benefits.\"\n  ],\n  confirmation: [\n    \"Perfect! I have all the information I need to help you get scheduled. Let me confirm what I have so far to make sure everything is correct.\",\n    \"Great! I want to make sure I have everything right before we proceed. Let me confirm the details we've discussed so far.\",\n    \"Excellent! I want to ensure I have all your information correct. Let me confirm what we've covered so far.\"\n  ],\n  completion: [\n    \"Thank you so much for trusting us with your care. I've collected all the information we need, and our team will be in touch shortly to confirm your appointment details. I know you may be in pain, and I want you to know we're here to help you get relief as quickly as possible.\",\n    \"I appreciate you taking the time to share your information with me. I've gathered everything we need, and our team will contact you soon to finalize your appointment. I understand you may be experiencing discomfort, and we're committed to helping you get the care you need.\",\n    \"Thank you for choosing us for your care. I have all the information we need, and our team will reach out shortly to confirm your appointment. I know this might be a difficult time, and we're here to support you every step of the way.\"\n  ]\n};\n\n// Helper function to get random variation\nfunction getRandomVariation(category) {\n  const variations = responseVariations[category] || [\"I'm here to help you.\"];\n  return variations[Math.floor(Math.random() * variations.length)];\n}\n\n// Helper function to format response with dynamic data\nfunction formatResponse(template, data = {}) {\n  return template.replace(/\\{\\{([^}]+)\\}\\}/g, (match, key) => {\n    return data[key.trim()] || match;\n  });\n}\n\n// STATE MACHINE LOGIC\nswitch (bookingState) {\n  case \"initial\":\n    response = getRandomVariation(\"welcome\");\n    suggestedActions = [\n      { text: \"New Patient\", action: \"new_patient\" },\n      { text: \"Existing Patient\", action: \"existing_patient\" }\n    ];\n    nextState = \"patient_type_selected\";\n    break;\n    \n  case \"patient_type_selected\":\n    if (userAction === \"new_patient\" || userInput.includes(\"new\")) {\n      response = getRandomVariation(\"nameRequest\");\n      suggestedActions = [];\n      nextState = \"collecting_name\";\n      updatedBookingData.patientType = \"new\";\n    } else if (userAction === \"existing_patient\" || userInput.includes(\"existing\")) {\n      response = getRandomVariation(\"nameRequest\");\n      suggestedActions = [];\n      nextState = \"collecting_name\";\n      updatedBookingData.patientType = \"existing\";\n    } else {\n      response = \"I didn't quite catch that. Are you a new patient or an existing patient?\";\n      suggestedActions = [\n        { text: \"New Patient\", action: \"new_patient\" },\n        { text: \"Existing Patient\", action: \"existing_patient\" }\n      ];\n    }\n    break;\n    \n  case \"collecting_name\":\n    if (userInput && userInput.trim()) {\n      // Extract name from input\n      const nameParts = userInput.trim().split(\" \");\n      if (nameParts.length >= 2) {\n        updatedBookingData.firstName = nameParts[0];\n        updatedBookingData.lastName = nameParts.slice(1).join(\" \");\n        response = \"Thank you! What's your date of birth? (MM/DD/YYYY)\";\n        suggestedActions = [];\n        nextState = \"collecting_dob\";\n      } else {\n        response = \"I need both your first name and last name. Could you please provide your full name?\";\n        suggestedActions = [];\n      }\n    } else {\n      response = \"I need your first name and last name to help you get scheduled. Could you please provide your full name?\";\n      suggestedActions = [];\n    }\n    break;\n    \n  case \"collecting_dob\":\n    if (userInput && userInput.trim()) {\n      updatedBookingData.dateOfBirth = userInput.trim();\n      response = \"Thank you! What's your phone number?\";\n      suggestedActions = [];\n      nextState = \"collecting_phone\";\n    } else {\n      response = \"I need your date of birth to help you get scheduled. Could you please provide it in MM/DD/YYYY format?\";\n      suggestedActions = [];\n    }\n    break;\n    \n  case \"collecting_phone\":\n    if (userInput && userInput.trim()) {\n      updatedBookingData.phone = userInput.trim();\n      response = \"Thank you! What's your email address?\";\n      suggestedActions = [];\n      nextState = \"collecting_email\";\n    } else {\n      response = \"I need your phone number to help you get scheduled. Could you please provide it?\";\n      suggestedActions = [];\n    }\n    break;\n    \n  case \"collecting_email\":\n    if (userInput && userInput.trim()) {\n      updatedBookingData.email = userInput.trim();\n      response = getRandomVariation(\"locationSelection\");\n      suggestedActions = [\n        { text: \"Old Bridge\", action: \"location_old_bridge\" },\n        { text: \"Jersey City\", action: \"location_jersey_city\" },\n        { text: \"South Plainfield\", action: \"location_south_plainfield\" }\n      ];\n      nextState = \"collecting_location\";\n    } else {\n      response = \"I need your email address to help you get scheduled. Could you please provide it?\";\n      suggestedActions = [];\n    }\n    break;\n    \n  case \"collecting_location\":\n    if (userAction && userAction.startsWith(\"location_\")) {\n      const location = userAction.replace(\"location_\", \"\").replace(\"_\", \" \");\n      updatedBookingData.location = location;\n      response = getRandomVariation(\"painLevel\");\n      suggestedActions = [\n        { text: \"1\", action: \"pain_1\" },\n        { text: \"2\", action: \"pain_2\" },\n        { text: \"3\", action: \"pain_3\" },\n        { text: \"4\", action: \"pain_4\" },\n        { text: \"5\", action: \"pain_5\" },\n        { text: \"6\", action: \"pain_6\" },\n        { text: \"7\", action: \"pain_7\" },\n        { text: \"8\", action: \"pain_8\" },\n        { text: \"9\", action: \"pain_9\" },\n        { text: \"10\", action: \"pain_10\" }\n      ];\n      nextState = \"collecting_pain_level\";\n    } else if (userInput && userInput.trim()) {\n      updatedBookingData.location = userInput.trim();\n      response = getRandomVariation(\"painLevel\");\n      suggestedActions = [\n        { text: \"1\", action: \"pain_1\" },\n        { text: \"2\", action: \"pain_2\" },\n        { text: \"3\", action: \"pain_3\" },\n        { text: \"4\", action: \"pain_4\" },\n        { text: \"5\", action: \"pain_5\" },\n        { text: \"6\", action: \"pain_6\" },\n        { text: \"7\", action: \"pain_7\" },\n        { text: \"8\", action: \"pain_8\" },\n        { text: \"9\", action: \"pain_9\" },\n        { text: \"10\", action: \"pain_10\" }\n      ];\n      nextState = \"collecting_pain_level\";\n    } else {\n      response = \"Which location would you prefer? We have Old Bridge, Jersey City, and South Plainfield.\";\n      suggestedActions = [\n        { text: \"Old Bridge\", action: \"location_old_bridge\" },\n        { text: \"Jersey City\", action: \"location_jersey_city\" },\n        { text: \"South Plainfield\", action: \"location_south_plainfield\" }\n      ];\n    }\n    break;\n    \n  case \"collecting_pain_level\":\n    if (userAction && userAction.startsWith(\"pain_\")) {\n      const painLevel = userAction.replace(\"pain_\", \"\");\n      updatedBookingData.painLevel = painLevel;\n      response = getRandomVariation(\"symptoms\");\n      suggestedActions = [];\n      nextState = \"collecting_symptoms\";\n    } else if (userInput && userInput.trim()) {\n      // Try to extract pain level from text\n      const painMatch = userInput.match(/(\\d+)/);\n      if (painMatch && parseInt(painMatch[1]) >= 1 && parseInt(painMatch[1]) <= 10) {\n        updatedBookingData.painLevel = painMatch[1];\n        response = getRandomVariation(\"symptoms\");\n        suggestedActions = [];\n        nextState = \"collecting_symptoms\";\n      } else {\n        response = \"I need to know your pain level on a scale of 1 to 10. Could you please provide a number between 1 and 10?\";\n        suggestedActions = [\n          { text: \"1\", action: \"pain_1\" },\n          { text: \"2\", action: \"pain_2\" },\n          { text: \"3\", action: \"pain_3\" },\n          { text: \"4\", action: \"pain_4\" },\n          { text: \"5\", action: \"pain_5\" },\n          { text: \"6\", action: \"pain_6\" },\n          { text: \"7\", action: \"pain_7\" },\n          { text: \"8\", action: \"pain_8\" },\n          { text: \"9\", action: \"pain_9\" },\n          { text: \"10\", action: \"pain_10\" }\n        ];\n      }\n    } else {\n      response = \"I need to know your pain level on a scale of 1 to 10. Could you please provide a number between 1 and 10?\";\n      suggestedActions = [\n        { text: \"1\", action: \"pain_1\" },\n        { text: \"2\", action: \"pain_2\" },\n        { text: \"3\", action: \"pain_3\" },\n        { text: \"4\", action: \"pain_4\" },\n        { text: \"5\", action: \"pain_5\" },\n        { text: \"6\", action: \"pain_6\" },\n        { text: \"7\", action: \"pain_7\" },\n        { text: \"8\", action: \"pain_8\" },\n        { text: \"9\", action: \"pain_9\" },\n        { text: \"10\", action: \"pain_10\" }\n      ];\n    }\n    break;\n    \n  case \"collecting_symptoms\":\n    if (userInput && userInput.trim()) {\n      updatedBookingData.symptoms = userInput.trim();\n      response = getRandomVariation(\"procedure\");\n      suggestedActions = [\n        { text: \"Spine Surgery\", action: \"procedure_spine_surgery\" },\n        { text: \"Spine Treatment (Non-Surgical)\", action: \"procedure_spine_treatment\" },\n        { text: \"Podiatry\", action: \"procedure_podiatry\" },\n        { text: \"General Orthopedics/Extremity\", action: \"procedure_general_orthopedics\" }\n      ];\n      nextState = \"collecting_procedure\";\n    } else {\n      response = \"Could you please tell me about your symptoms? This helps us understand how to best help you.\";\n      suggestedActions = [];\n    }\n    break;\n    \n  case \"collecting_procedure\":\n    if (userAction && userAction.startsWith(\"procedure_\")) {\n      const procedure = userAction.replace(\"procedure_\", \"\").replace(/_/g, \" \");\n      updatedBookingData.procedure = procedure;\n      response = getRandomVariation(\"insurance\");\n      suggestedActions = [\n        { text: \"Aetna\", action: \"insurance_aetna\" },\n        { text: \"Blue Cross Blue Shield\", action: \"insurance_bcbs\" },\n        { text: \"Cigna\", action: \"insurance_cigna\" },\n        { text: \"UnitedHealthcare\", action: \"insurance_united\" },\n        { text: \"Humana\", action: \"insurance_humana\" },\n        { text: \"Other\", action: \"insurance_other\" }\n      ];\n      nextState = \"collecting_insurance\";\n    } else if (userInput && userInput.trim()) {\n      updatedBookingData.procedure = userInput.trim();\n      response = getRandomVariation(\"insurance\");\n      suggestedActions = [\n        { text: \"Aetna\", action: \"insurance_aetna\" },\n        { text: \"Blue Cross Blue Shield\", action: \"insurance_bcbs\" },\n        { text: \"Cigna\", action: \"insurance_cigna\" },\n        { text: \"UnitedHealthcare\", action: \"insurance_united\" },\n        { text: \"Humana\", action: \"insurance_humana\" },\n        { text: \"Other\", action: \"insurance_other\" }\n      ];\n      nextState = \"collecting_insurance\";\n    } else {\n      response = \"What procedure or treatment are you interested in? We offer spine surgery, non-surgical spine treatment, podiatry, and general orthopedics.\";\n      suggestedActions = [\n        { text: \"Spine Surgery\", action: \"procedure_spine_surgery\" },\n        { text: \"Spine Treatment (Non-Surgical)\", action: \"procedure_spine_treatment\" },\n        { text: \"Podiatry\", action: \"procedure_podiatry\" },\n        { text: \"General Orthopedics/Extremity\", action: \"procedure_general_orthopedics\" }\n      ];\n    }\n    break;\n    \n  case \"collecting_insurance\":\n    if (userAction && userAction.startsWith(\"insurance_\")) {\n      const insurance = userAction.replace(\"insurance_\", \"\").replace(/_/g, \" \");\n      updatedBookingData.insurance = insurance;\n      response = \"Thank you! Is there any additional information you'd like to share with us? This helps us prepare for your visit.\";\n      suggestedActions = [];\n      nextState = \"collecting_additional_info\";\n    } else if (userInput && userInput.trim()) {\n      updatedBookingData.insurance = userInput.trim();\n      response = \"Thank you! Is there any additional information you'd like to share with us? This helps us prepare for your visit.\";\n      suggestedActions = [];\n      nextState = \"collecting_additional_info\";\n    } else {\n      response = \"What insurance do you have? We accept most major insurance providers.\";\n      suggestedActions = [\n        { text: \"Aetna\", action: \"insurance_aetna\" },\n        { text: \"Blue Cross Blue Shield\", action: \"insurance_bcbs\" },\n        { text: \"Cigna\", action: \"insurance_cigna\" },\n        { text: \"UnitedHealthcare\", action: \"insurance_united\" },\n        { text: \"Humana\", action: \"insurance_humana\" },\n        { text: \"Other\", action: \"insurance_other\" }\n      ];\n    }\n    break;\n    \n  case \"collecting_additional_info\":\n    if (userInput && userInput.trim()) {\n      updatedBookingData.additionalInfo = userInput.trim();\n    }\n    response = getRandomVariation(\"confirmation\");\n    response += \"\\n\\nHere's what I have:\";\n    response += `\\n• Name: ${updatedBookingData.firstName} ${updatedBookingData.lastName}`;\n    response += `\\n• Date of Birth: ${updatedBookingData.dateOfBirth}`;\n    response += `\\n• Phone: ${updatedBookingData.phone}`;\n    response += `\\n• Email: ${updatedBookingData.email}`;\n    response += `\\n• Location: ${updatedBookingData.location}`;\n    response += `\\n• Pain Level: ${updatedBookingData.painLevel}/10`;\n    response += `\\n• Symptoms: ${updatedBookingData.symptoms}`;\n    response += `\\n• Procedure: ${updatedBookingData.procedure}`;\n    response += `\\n• Insurance: ${updatedBookingData.insurance}`;\n    if (updatedBookingData.additionalInfo) {\n      response += `\\n• Additional Info: ${updatedBookingData.additionalInfo}`;\n    }\n    response += \"\\n\\nIs this information correct?\";\n    suggestedActions = [\n      { text: \"Yes, that's correct\", action: \"confirm_booking\" },\n      { text: \"No, I need to make changes\", action: \"edit_booking\" }\n    ];\n    nextState = \"confirmation\";\n    break;\n    \n  case \"confirmation\":\n    if (userAction === \"confirm_booking\" || userInput.toLowerCase().includes(\"yes\") || userInput.toLowerCase().includes(\"correct\")) {\n      response = getRandomVariation(\"completion\");\n      suggestedActions = [];\n      nextState = \"complete\";\n    } else {\n      response = \"I understand you'd like to make changes. Let me know what information needs to be corrected.\";\n      suggestedActions = [];\n      nextState = \"collecting_additional_info\";\n    }\n    break;\n    \n  default:\n    response = \"I'm here to help you book your appointment. Let's start fresh. Are you a new patient or an existing patient?\";\n    suggestedActions = [\n      { text: \"New Patient\", action: \"new_patient\" },\n      { text: \"Existing Patient\", action: \"existing_patient\" }\n    ];\n    nextState = \"patient_type_selected\";\n    break;\n}\n\n// RETURN RESPONSE\nreturn {\n  json: {\n    ...item.json,\n    agent_response: response,\n    suggestedActions,\n    bookingState: nextState,\n    bookingData: JSON.stringify(updatedBookingData),\n    conversation_stage: nextState === \"complete\" ? \"booking_complete\" : \"booking_in_progress\",\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "name": "Deterministic Booking Agent",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [700, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// CLINICAL Q&A AGENT - LLM for medical questions\nreturn {\n  json: {\n    ...item.json,\n    agent_response: \"I understand you have medical questions. Let me connect you with our clinical team who can provide the most accurate and helpful information for your specific situation.\",\n    suggestedActions: [\n      { text: \"Book Appointment\", action: \"book_appointment\" },\n      { text: \"Contact Human\", action: \"contact_human\" }\n    ],\n    conversation_stage: \"clinical_qa\",\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "name": "Clinical Q&A Agent",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [700, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// INSURANCE/BILLING AGENT - LLM for insurance questions\nreturn {\n  json: {\n    ...item.json,\n    agent_response: \"I'd be happy to help you with insurance and billing questions. Let me provide you with the most accurate information about your coverage and costs.\",\n    suggestedActions: [\n      { text: \"Book Appointment\", action: \"book_appointment\" },\n      { text: \"Contact Human\", action: \"contact_human\" }\n    ],\n    conversation_stage: \"insurance_billing\",\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "name": "Insurance/Billing Agent",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [700, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// FEEDBACK/SUPPORT AGENT - LLM for feedback and support\nreturn {\n  json: {\n    ...item.json,\n    agent_response: \"I appreciate you taking the time to share your feedback. Your experience is important to us, and I want to make sure we address your concerns properly.\",\n    suggestedActions: [\n      { text: \"Book Appointment\", action: \"book_appointment\" },\n      { text: \"Contact Human\", action: \"contact_human\" }\n    ],\n    conversation_stage: \"feedback_support\",\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "name": "Feedback/Support Agent",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [700, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "// HUMAN AGENT - Escalation to human\nreturn {\n  json: {\n    ...item.json,\n    agent_response: \"I understand this requires immediate human attention. Let me connect you with our team right away. Someone will be with you shortly.\",\n    suggestedActions: [],\n    conversation_stage: \"human_escalation\",\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "name": "Human Agent",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [700, 600]
+    },
+    {
+      "parameters": {
+        "jsCode": "// GENERAL Q&A AGENT - LLM for general questions\nreturn {\n  json: {\n    ...item.json,\n    agent_response: \"I'd be happy to help you with any questions about our practice, services, or how we can assist you. What would you like to know?\",\n    suggestedActions: [\n      { text: \"Book Appointment\", action: \"book_appointment\" },\n      { text: \"Contact Human\", action: \"contact_human\" }\n    ],\n    conversation_stage: \"general_qa\",\n    timestamp: new Date().toISOString()\n  }\n};"
+      },
+      "name": "General Q&A Agent",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [700, 700]
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{"node": "Intent Classifier", "type": "main", "index": 0}]] },
+    "Intent Classifier": { "main": [[{"node": "Switch", "type": "main", "index": 0}]] },
+    "Switch": {
+      "main": [
+        [{"node": "Deterministic Booking Agent", "type": "main", "index": 0}],
+        [{"node": "Clinical Q&A Agent", "type": "main", "index": 0}],
+        [{"node": "Insurance/Billing Agent", "type": "main", "index": 0}],
+        [{"node": "Feedback/Support Agent", "type": "main", "index": 0}],
+        [{"node": "Human Agent", "type": "main", "index": 0}],
+        [{"node": "General Q&A Agent", "type": "main", "index": 0}]
+      ]
+    }
+  },
+  "settings": { "executionOrder": "v1" }
+} 

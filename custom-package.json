@@ -1,0 +1,40 @@
+{
+  "name": "autopilotcx-custom-nodes",
+  "version": "1.0.0",
+  "description": "Custom nodes for AutopilotCX N8N workflow engine",
+  "main": "index.js",
+  "n8n": {
+    "nodes": [
+      "ArrangerAgent.node.js",
+      "BeatAgent.node.js",
+      "CadenceAgent.node.js",
+      "ComposerAgent.node.js",
+      "EnsembleAgent.node.js",
+      "HarmonyAgent.node.js",
+      "HumanAgent.node.js",
+      "LyricistAgent.node.js",
+      "MaestroAgent.node.js",
+      "MaestroTrainerAgent.node.js",
+      "MedleyAgent.node.js",
+      "OvertureAgent.node.js",
+      "PreludeAgent.node.js",
+      "ResonanceAgent.node.js",
+      "RhythmAgent.node.js",
+      "ScoreAgent.node.js",
+      "SiteAgent.node.js",
+      "VirtuosoAgent.node.js"
+    ]
+  },
+  "dependencies": {
+    "n8n-workflow": "^1.98.0"
+  },
+  "keywords": [
+    "n8n",
+    "workflow",
+    "automation",
+    "cx",
+    "customer experience"
+  ],
+  "author": "AutopilotCX",
+  "license": "MIT"
+}

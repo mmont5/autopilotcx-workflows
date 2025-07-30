@@ -1,0 +1,1874 @@
+{
+  "name": "hassan-Spine-and-Sports-Medicine-Demo-Workflow-July-24-2025",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "CUSTOM.scoreAgent",
+      "typeVersion": 1,
+      "position": [
+        -1260,
+        760
+      ],
+      "id": "42e73051-838b-4765-8eeb-dbd9216e68cb",
+      "name": "ScoreAgent"
+    },
+    {
+      "parameters": {},
+      "type": "CUSTOM.harmonyAgent",
+      "typeVersion": 1,
+      "position": [
+        -1280,
+        960
+      ],
+      "id": "b5915ec6-5110-4115-b4f1-0f8e37f8d1be",
+      "name": "HarmonyAgent"
+    },
+    {
+      "parameters": {},
+      "type": "CUSTOM.composerAgent",
+      "typeVersion": 1,
+      "position": [
+        -1280,
+        1340
+      ],
+      "id": "5787c400-143f-443b-b806-47d8eb8516af",
+      "name": "ComposerAgent"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map((item, i) => {\n  const data = { ...item.json };\n\n  // Helper to parse JSON fields or default to []\n  const parseOrDefault = (field, def = []) => {\n    if (!data[field]) return def;\n    if (typeof data[field] === 'string') {\n      try { return JSON.parse(data[field]); } catch { return def; }\n    }\n    if (Array.isArray(data[field])) return data[field];\n    return def;\n  };\n\n  // CRITICAL FIX: Parse ALL business data from Supabase\n  data.locations = parseOrDefault('locations');\n  data.specialists = parseOrDefault('specialists');\n  data.team_members = parseOrDefault('team_members');\n  data.social_accounts = parseOrDefault('social_accounts');\n  data.authoritative_sites = parseOrDefault('authoritative_sites');\n  data.important_sites = parseOrDefault('important_sites');\n  data.usage_rights = parseOrDefault('usage_rights');\n  data.metadata = parseOrDefault('metadata');\n\n  // CRITICAL FIX: Handle category mapping from multiple sources\n  let categoryIds = [];\n  \n  // Check if category_ids is in the top level\n  if (data.category_ids) {\n    categoryIds = parseOrDefault('category_ids');\n  }\n  // Check if category_ids is in body.metadata\n  else if (data.body && data.body.metadata && data.body.metadata.category_ids) {\n    categoryIds = data.body.metadata.category_ids;\n  }\n  // Check if category_ids is in metadata\n  else if (data.metadata && data.metadata.category_ids) {\n    categoryIds = data.metadata.category_ids;\n  }\n  \n  // CRITICAL FIX: Enhanced category mapping for healthcare\n  const categoryMap = {\n    '52ac4d54-5594-4b00-8393-28d4e25f19b3': 'Pain Management',\n    'f0579e36-d7ef-4e9e-8223-d5bb4c19171a': 'Sports Medicine',\n    // Add more healthcare categories as needed\n    'orthopedics': 'Orthopedics',\n    'spine-surgery': 'Spine Surgery',\n    'sports-medicine': 'Sports Medicine',\n    'pain-management': 'Pain Management'\n  };\n  \n  // Convert category IDs to readable names\n  const categories = categoryIds.map(id => categoryMap[id]).filter(Boolean);\n  \n  // Set the category field\n  if (categories.length > 0) {\n    data.category = categories.join(', '); // Shows both: \"Pain Management, Sports Medicine\"\n    data.category_ids = categoryIds; // Keep the original IDs too\n  }\n\n  // CRITICAL FIX: Ensure demo ID is properly set\n  data.demoId = data.id || data.demoId || 'bd5aa8b2-84fa-4b64-986d-7458b680b5b9';\n\n  // CRITICAL FIX: Ensure company and agent names are set\n  data.company_name = data.company_name || 'Hassan Spine & Sports Medicine';\n  data.agent_name = data.agent_name || 'Olivia';\n\n  // CRITICAL FIX: Ensure industry is set\n  data.industry = data.industry || 'healthcare';\n\n  // CRITICAL FIX: Add contact information\n  data.contact = {\n    phone: data.company_phone || data.contact?.phone || '(732) 759-8110',\n    email: data.company_email || data.contact?.email || 'info@hassanspine.com'\n  };\n\n  // CRITICAL FIX: Add formatted address for locations\n  if (data.locations && data.locations.length > 0) {\n    const mainLocation = data.locations[0];\n    if (mainLocation) {\n      const addressParts = [\n        mainLocation.address1,\n        mainLocation.address2 && mainLocation.address2.trim() !== \"\" ? mainLocation.address2 : null,\n        mainLocation.city,\n        mainLocation.state + \" \" + mainLocation.zip\n      ].filter(Boolean);\n      data.formatted_address = addressParts.join(\", \");\n    }\n  }\n\n  // CRITICAL FIX: Add services from demo_services relationship\n  // This will be populated by the workflow assembly process\n  data.services = data.services || [\n    'Spine Surgery',\n    'Non-Surgical',\n    'Podiatry', \n    'Orthopedics',\n    'Spinal Conditions',\n    'Knee Injury',\n    'Shoulder Injury',\n    'Arthritis',\n    'Joint Pain',\n    'PRP Therapy',\n    'Radiofrequency Ablation',\n    'Spinal Cord Stimulation',\n    'Pain Relief',\n    'Sports Injury',\n    'Sports Medicine'\n  ];\n\n  // CRITICAL FIX: Add insurance providers\n  data.insurance_providers = data.insurance_providers || [\n    'Aetna',\n    'Blue Cross Blue Shield', \n    'Cigna',\n    'UnitedHealth',\n    'Humana',\n    'Kaiser Permanente',\n    'Anthem',\n    'Molina Healthcare'\n  ];\n\n  console.log('🔧 DEBUG - Initial Processing: Processed data:', {\n    demoId: data.demoId,\n    company_name: data.company_name,\n    agent_name: data.agent_name,\n    category: data.category,\n    locations_count: data.locations ? data.locations.length : 0,\n    specialists_count: data.specialists ? data.specialists.length : 0,\n    services_count: data.services ? data.services.length : 0\n  });\n\n  return {\n    json: data,\n    pairedItem: i\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3060,
+        340
+      ],
+      "id": "457edb4e-4638-4d8d-8bc6-512c100fc4bb",
+      "name": "Initial Processing",
+      "alwaysOutputData": false,
+      "executeOnce": false,
+      "retryOnFail": false
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map((item, i) => {\n  const processedData = item.json;\n  const status = {\n    ...processedData,\n    status: 'SUCCESS',\n    // ...rest of your status fields\n  };\n  return {\n    json: status,\n    pairedItem: i\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3600,
+        580
+      ],
+      "id": "7d1924a3-fe75-4515-8a4d-d9133ab8309f",
+      "name": "Supabase Update"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "0a274e64-8902-4f73-ac54-7f37206c7a31",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -4940,
+        360
+      ],
+      "id": "d1537ff1-1a52-4215-9ac6-87fc465492f7",
+      "name": "Webhook",
+      "webhookId": "0a274e64-8902-4f73-ac54-7f37206c7a31"
+    },
+    {
+      "parameters": {
+        "url": "https://maps.googleapis.com/maps/api/place/findplacefromtext/json",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "input",
+              "value": "={{$json[\"company_name\"]}}: Shady Hassan, MD, {{$json[\"locations\"][0].address1}}, {{$json[\"locations\"][0].address2}}, {{$json[\"locations\"][0].city}}, {{$json[\"locations\"][0].state}} {{$json[\"locations\"][0].zip}}"
+            },
+            {
+              "name": "inputtype",
+              "value": "textquery"
+            },
+            {
+              "name": "fields",
+              "value": "place_id"
+            },
+            {
+              "name": "key",
+              "value": "AIzaSyBBbUr7w1_R6OoxAjWYz5DR60o6ArXcdvQ"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -2680,
+        340
+      ],
+      "id": "663318ae-7cd7-4b6b-a26a-6b896e6af5ec",
+      "name": "Find Place ID"
+    },
+    {
+      "parameters": {
+        "url": "https://maps.googleapis.com/maps/api/place/details/json",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "place_id",
+              "value": "={{$node[\"Find Place ID\"].json[\"candidates\"][0][\"place_id\"]}}"
+            },
+            {
+              "name": "fields",
+              "value": "name,formatted_address,opening_hours,url"
+            },
+            {
+              "name": "key",
+              "value": "AIzaSyBBbUr7w1_R6OoxAjWYz5DR60o6ArXcdvQ"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -2480,
+        340
+      ],
+      "id": "11e29796-16c9-4e23-9bf3-24689b688263",
+      "name": "Get Place Details"
+    },
+    {
+      "parameters": {
+        "jsCode": "// CRITICAL FIX: Intent Classifier - Proper Booking State Detection and Preservation\n// This fixes the issue where booking flows are incorrectly routed to MedleyAgent instead of staying in BookingAgent\n\nreturn items.map((item, i) => {\n  try {\n    // Always classify intent from the message if there is one\n    const input = (item.json.message || \"\").toLowerCase();\n\n    // CRITICAL FIX: Get booking state from MULTIPLE possible sources\n    let bookingState = \"\";\n    let bookingData = \"{}\";\n    \n    // Source 1: Direct from item.json\n    if (item.json.bookingState) {\n      bookingState = item.json.bookingState;\n    }\n    \n    // Source 2: From webhook body\n    if (item.json.body && item.json.body.bookingState) {\n      bookingState = item.json.body.bookingState;\n    }\n    \n    // Source 3: From original_context.webhookData\n    if (item.json.original_context && item.json.original_context.webhookData && item.json.original_context.webhookData.bookingState) {\n      bookingState = item.json.original_context.webhookData.bookingState;\n    }\n    \n    // Source 4: From webhookData\n    if (item.json.webhookData && item.json.webhookData.bookingState) {\n      bookingState = item.json.webhookData.bookingState;\n    }\n    \n    // CRITICAL FIX: Get booking data from MULTIPLE possible sources\n    if (item.json.bookingData) {\n      bookingData = item.json.bookingData;\n    } else if (item.json.body && item.json.body.bookingData) {\n      bookingData = item.json.body.bookingData;\n    } else if (item.json.original_context && item.json.original_context.webhookData && item.json.original_context.webhookData.bookingData) {\n      bookingData = item.json.original_context.webhookData.bookingData;\n    } else if (item.json.webhookData && item.json.webhookData.bookingData) {\n      bookingData = item.json.webhookData.bookingData;\n    }\n\n    console.log(\"🔧 DEBUG - Intent Classifier - Input:\", input);\n    console.log(\"🔧 DEBUG - Intent Classifier - Booking State:\", bookingState);\n    console.log(\"🔧 DEBUG - Intent Classifier - Booking Data:\", bookingData);\n\n    // CRITICAL FIX: If we're in an active booking session, ALWAYS route to BookingAgent\n    if (bookingState && bookingState !== \"complete\" && bookingState !== \"\" && bookingState !== \"initial\") {\n      console.log(\"🔧 DEBUG - Intent Classifier - Active booking session detected, routing to BookingAgent\");\n      return {\n        json: {\n          ...item.json,\n          intent: \"appointment\",\n          nextAgent: \"BookingAgent\",\n          conversation_stage: \"booking_in_progress\",\n          bookingState,\n          bookingData\n        },\n        pairedItem: i\n      };\n    }\n\n    // Only skip detection if there's no user message\n    if (!input || input.trim() === \"\") {\n      // Remove next_agent if present, keep everything else\n      const { next_agent, ...rest } = item.json;\n      return {\n        json: {\n          ...rest,\n          bookingState,\n          bookingData\n          // Keep existing intent and nextAgent if no user message\n        },\n        pairedItem: i\n      };\n    }\n\n    // Enhanced Intent detection logic with better patterns\n    function detectIntent(input) {\n      // Emergency detection - HIGHEST PRIORITY\n      if (\n        input.includes(\"emergency\") ||\n        input.includes(\"911\") ||\n        input.includes(\"severe pain\") ||\n        input.includes(\"can't move\") ||\n        input.includes(\"can't feel\") ||\n        input.includes(\"paralysis\") ||\n        input.includes(\"loss of consciousness\") ||\n        input.includes(\"chest pain\") ||\n        input.includes(\"difficulty breathing\") ||\n        input.includes(\"stroke\") ||\n        input.includes(\"heart attack\")\n      ) {\n        return \"escalate\";\n      }\n\n      // Booking/appointment intent (PRIORITIZE booking over clinical)\n      if (\n        input.includes(\"book\") ||\n        input.includes(\"appointment\") ||\n        input.includes(\"schedule\") ||\n        input.includes(\"reschedule\") ||\n        input.includes(\"new patient\") ||\n        input.includes(\"make appointment\") ||\n        input.includes(\"set up appointment\") ||\n        input.includes(\"book appointment\") ||\n        input.includes(\"schedule appointment\") ||\n        input.includes(\"cancel appointment\") ||\n        input.includes(\"change appointment\") ||\n        input.includes(\"appointment time\") ||\n        input.includes(\"available time\") ||\n        input.includes(\"next available\")\n      ) {\n        return \"appointment\";\n      }\n\n      // Clinical/symptom intent - EXPANDED PATTERNS\n      if (\n        input.includes(\"pain\") ||\n        input.includes(\"hurt\") ||\n        input.includes(\"ache\") ||\n        input.includes(\"back\") ||\n        input.includes(\"neck\") ||\n        input.includes(\"shoulder\") ||\n        input.includes(\"spine\") ||\n        input.includes(\"injury\") ||\n        input.includes(\"symptom\") ||\n        input.includes(\"discomfort\") ||\n        input.includes(\"stiffness\") ||\n        input.includes(\"soreness\") ||\n        input.includes(\"tenderness\") ||\n        input.includes(\"swelling\") ||\n        input.includes(\"inflammation\") ||\n        input.includes(\"numbness\") ||\n        input.includes(\"tingling\") ||\n        input.includes(\"weakness\") ||\n        input.includes(\"limited range\") ||\n        input.includes(\"can't bend\") ||\n        input.includes(\"can't lift\") ||\n        input.includes(\"shooting pain\") ||\n        input.includes(\"throbbing\") ||\n        input.includes(\"burning\") ||\n        input.includes(\"cramp\") ||\n        input.includes(\"spasm\") ||\n        input.includes(\"muscle\") ||\n        input.includes(\"joint\") ||\n        input.includes(\"bone\") ||\n        input.includes(\"disc\") ||\n        input.includes(\"herniated\") ||\n        input.includes(\"sciatica\") ||\n        input.includes(\"arthritis\") ||\n        input.includes(\"bursitis\") ||\n        input.includes(\"tendonitis\") ||\n        input.includes(\"fracture\") ||\n        input.includes(\"sprain\") ||\n        input.includes(\"strain\") ||\n        input.includes(\"whiplash\") ||\n        input.includes(\"slipped disc\") ||\n        input.includes(\"bulging disc\") ||\n        input.includes(\"degenerative\") ||\n        input.includes(\"hernia\") ||\n        input.includes(\"pinched nerve\")\n      ) {\n        return \"clinical\";\n      }\n\n      // Billing/insurance intent - EXPANDED PATTERNS\n      if (\n        input.includes(\"cost\") ||\n        input.includes(\"price\") ||\n        input.includes(\"bill\") ||\n        input.includes(\"insurance\") ||\n        input.includes(\"coverage\") ||\n        input.includes(\"payment\") ||\n        input.includes(\"copay\") ||\n        input.includes(\"deductible\") ||\n        input.includes(\"out of pocket\") ||\n        input.includes(\"premium\") ||\n        input.includes(\"benefits\") ||\n        input.includes(\"policy\") ||\n        input.includes(\"claim\") ||\n        input.includes(\"reimbursement\") ||\n        input.includes(\"medical expenses\") ||\n        input.includes(\"treatment cost\") ||\n        input.includes(\"procedure cost\") ||\n        input.includes(\"consultation fee\") ||\n        input.includes(\"office visit\") ||\n        input.includes(\"specialist fee\") ||\n        input.includes(\"aetna\") ||\n        input.includes(\"blue cross\") ||\n        input.includes(\"cigna\") ||\n        input.includes(\"unitedhealthcare\") ||\n        input.includes(\"humana\") ||\n        input.includes(\"medicare\") ||\n        input.includes(\"medicaid\")\n      ) {\n        return \"billing\";\n      }\n\n      // Feedback intent - EXPANDED PATTERNS\n      if (\n        input.includes(\"feedback\") ||\n        input.includes(\"complaint\") ||\n        input.includes(\"suggestion\") ||\n        input.includes(\"review\") ||\n        input.includes(\"rating\") ||\n        input.includes(\"experience\") ||\n        input.includes(\"satisfaction\") ||\n        input.includes(\"dissatisfied\") ||\n        input.includes(\"happy\") ||\n        input.includes(\"unhappy\") ||\n        input.includes(\"improve\") ||\n        input.includes(\"better\") ||\n        input.includes(\"worse\") ||\n        input.includes(\"recommend\") ||\n        input.includes(\"refer\") ||\n        input.includes(\"testimonial\") ||\n        input.includes(\"comment\") ||\n        input.includes(\"opinion\") ||\n        input.includes(\"thought\") ||\n        input.includes(\"feel\") ||\n        input.includes(\"like\") ||\n        input.includes(\"dislike\")\n      ) {\n        return \"feedback\";\n      }\n\n      // Default to general\n      return \"general\";\n    }\n\n    // Detect intent\n    const detectedIntent = detectIntent(input);\n\n    // Set conversation_stage to booking_start if intent is appointment and not already in booking\n    let conversation_stage = item.json.conversation_stage || \"\";\n    if (\n      detectedIntent === \"appointment\" &&\n      !conversation_stage.startsWith(\"booking\")\n    ) {\n      conversation_stage = \"booking_start\";\n    }\n\n    // Set nextAgent based on intent with proper agent mapping\n    let nextAgent = \"\";\n    if (detectedIntent === \"appointment\") {\n      nextAgent = \"BookingAgent\";\n    } else if (detectedIntent === \"clinical\") {\n      nextAgent = \"MedleyAgent\"; // Clinical questions go to MedleyAgent\n    } else if (detectedIntent === \"billing\") {\n      nextAgent = \"BillingAgent\";\n    } else if (detectedIntent === \"feedback\") {\n      nextAgent = \"FeedbackAgent\";\n    } else if (detectedIntent === \"escalate\") {\n      nextAgent = \"EscalationAgent\";\n    } else {\n      nextAgent = \"VirtuosoAgent\"; // Default agent for general questions\n    }\n\n    // Remove next_agent if present, keep everything else\n    const { next_agent, ...rest } = item.json;\n\n    // Add confidence score and additional metadata\n    const confidence = calculateConfidence(input, detectedIntent);\n    const urgency = detectedIntent === \"escalate\" ? \"high\" : \"normal\";\n\n    // CRITICAL FIX: Preserve the original_context structure that downstream agents expect\n    // Extract demo data from the current item\n    const demoData = {\n      id: item.json.id || item.json.demoId,\n      company_name: item.json.company_name,\n      agent_name: item.json.agent_name,\n      industry: item.json.industry,\n      category: item.json.category,\n      locations: item.json.locations,\n      specialists: item.json.specialists,\n      tagline: item.json.tagline,\n      logourl: item.json.logourl,\n      team_members: item.json.team_members,\n      social_accounts: item.json.social_accounts,\n      contact: item.json.contact,\n      google_place: item.json.google_place,\n      // Preserve all other demo fields\n      ...Object.keys(item.json).reduce((acc, key) => {\n        if (!['message', 'intent', 'nextAgent', 'bookingState', 'bookingData', 'confidence', 'urgency', 'timestamp', 'intent_detection_method'].includes(key)) {\n          acc[key] = item.json[key];\n        }\n        return acc;\n      }, {})\n    };\n\n    // Create webhook data structure\n    const webhookData = {\n      message: item.json.message,\n      bookingState: bookingState || \"\",\n      bookingData: bookingData || \"{}\",\n      userAction: item.json.userAction || \"\",\n      timestamp: item.json.timestamp || new Date().toISOString()\n    };\n\n    // Create full context (enriched data)\n    const fullContext = {\n      google_place: item.json.google_place || {},\n      result: item.json.result || {},\n      // Preserve any other enriched data\n      ...Object.keys(item.json).reduce((acc, key) => {\n        if (['google_place', 'result'].includes(key)) {\n          acc[key] = item.json[key];\n        }\n        return acc;\n      }, {})\n    };\n\n    console.log(\"🔧 DEBUG - Intent Classifier - Detected Intent:\", detectedIntent);\n    console.log(\"🔧 DEBUG - Intent Classifier - Next Agent:\", nextAgent);\n    console.log(\"🔧 DEBUG - Intent Classifier - Conversation Stage:\", conversation_stage);\n\n    // CRITICAL FIX: Return the proper structure that downstream agents expect\n    return {\n      json: {\n        // Chat-specific data\n        message: item.json.message,\n        intent: detectedIntent,\n        nextAgent, // Only camelCase, no snake_case\n        conversation_stage,\n        bookingState,   // Always pass this forward!\n        bookingData,    // Always pass this forward!\n        confidence,\n        urgency,\n        timestamp: new Date().toISOString(),\n        intent_detection_method: \"rule_based\",\n        \n        // CRITICAL: Preserve the original_context structure that downstream agents expect\n        original_context: {\n          demoData,      // All demo creation data\n          webhookData,   // Chat interaction data\n          fullContext    // Enriched data (Google Places, etc.)\n        }\n      },\n      pairedItem: i\n    };\n\n  } catch (error) {\n    // Error handling - return safe fallback\n    console.error(\"Intent classifier error:\", error);\n    return {\n      json: {\n        ...item.json,\n        intent: \"general\",\n        nextAgent: \"VirtuosoAgent\",\n        conversation_stage: item.json.conversation_stage || \"\",\n        bookingState: item.json.bookingState,\n        bookingData: item.json.bookingData,\n        confidence: 0.5,\n        urgency: \"normal\",\n        error: error.message,\n        timestamp: new Date().toISOString(),\n        intent_detection_method: \"fallback\",\n        // Preserve original_context even in error case\n        original_context: {\n          demoData: item.json,\n          webhookData: {\n            message: item.json.message,\n            bookingState: item.json.bookingState,\n            bookingData: item.json.bookingData\n          },\n          fullContext: {}\n        }\n      },\n      pairedItem: i\n    };\n  }\n});\n\n// Helper function to calculate confidence score\nfunction calculateConfidence(input, detectedIntent) {\n  let confidence = 0.7; // Base confidence\n  \n  // Boost confidence for clear, specific patterns\n  if (detectedIntent === \"escalate\") {\n    confidence = 0.95; // High confidence for emergency\n  } else if (detectedIntent === \"appointment\") {\n    // Check for multiple appointment-related keywords\n    const appointmentKeywords = [\"book\", \"appointment\", \"schedule\", \"reschedule\"];\n    const keywordCount = appointmentKeywords.filter(keyword => input.includes(keyword)).length;\n    confidence = Math.min(0.9, 0.7 + (keywordCount * 0.1));\n  } else if (detectedIntent === \"clinical\") {\n    // Check for multiple clinical keywords\n    const clinicalKeywords = [\"pain\", \"hurt\", \"ache\", \"back\", \"neck\", \"shoulder\", \"spine\", \"injury\", \"symptom\"];\n    const keywordCount = clinicalKeywords.filter(keyword => input.includes(keyword)).length;\n    confidence = Math.min(0.85, 0.7 + (keywordCount * 0.05));\n  } else if (detectedIntent === \"billing\") {\n    // Check for multiple billing keywords\n    const billingKeywords = [\"cost\", \"price\", \"bill\", \"insurance\", \"coverage\", \"payment\"];\n    const keywordCount = billingKeywords.filter(keyword => input.includes(keyword)).length;\n    confidence = Math.min(0.8, 0.7 + (keywordCount * 0.05));\n  }\n  \n  return confidence;\n} "
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2820,
+        580
+      ],
+      "id": "e9ba8871-76bd-4a7d-9c43-2d4bbca2ebfd",
+      "name": "Intent Classifier"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8460041f-863c-4df5-8d70-f45d56cb58e7",
+              "name": "locations",
+              "value": "={{ $json.locations ? (Array.isArray($json.locations) ? $json.locations : JSON.parse($json.locations)) : [] }}",
+              "type": "array"
+            },
+            {
+              "id": "3cc3666a-00a5-4d4a-911e-da790c48096d",
+              "name": "specialists",
+              "value": "={{ $json.specialists ? (Array.isArray($json.specialists) ? $json.specialists : JSON.parse($json.specialists)) : [] }}",
+              "type": "array"
+            },
+            {
+              "id": "b6d9dbc0-244f-4faf-b045-803b12357501",
+              "name": "message",
+              "value": "={{ $json.body?.message || $json.message || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "48f5b936-b6c6-405d-916a-b8bce24b8fe1",
+              "name": "intent",
+              "value": "={{ $json.body?.intent || $json.intent || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "10c3b583-cd47-4157-b26e-02a935af94e2",
+              "name": "agent",
+              "value": "={{ $json.body?.agent || $json.agent || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "dcb32650-beee-45b3-aa21-83e2fc3202b7",
+              "name": "timestamp",
+              "value": "={{ $json.body?.timestamp || $json.timestamp || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "23ead7dc-9089-4ae3-a8de-b5e217ee37f6",
+              "name": "userContext",
+              "value": "={{ $json.body?.userContext || $json.userContext || {} }}",
+              "type": "object"
+            },
+            {
+              "id": "82a19ca6-cc89-471c-9ec4-4409c109a72b",
+              "name": "body",
+              "value": "={{ undefined }}",
+              "type": "string"
+            },
+            {
+              "id": "44989cb0-7ac6-431f-842c-9497ac4795e5",
+              "name": "supabase_url",
+              "value": "https://twtxouksqmgexkfwmlub.supabase.co",
+              "type": "string"
+            },
+            {
+              "id": "6b9a18ab-b1ae-4788-86aa-bfc5ef7435dc",
+              "name": "supabase_api_key",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR3dHhvdWtzcW1nZXhrZndtbHViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY5ODU4MjEsImV4cCI6MjA2MjU2MTgyMX0.6x4kuGgORXttRiLSd6qIN-IFrU3s2VXk4mBup76FQuU",
+              "type": "string"
+            },
+            {
+              "id": "c701144c-e61d-4878-a2f1-2ca7e04ae7fb",
+              "name": "bookingState",
+              "value": "={{ $json.body?.bookingState || $json.bookingState || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "09b6a324-7918-4385-a814-e3baaea47daa",
+              "name": "bookingData",
+              "value": "={{ $json.body?.bookingData || $json.bookingData || {} }}",
+              "type": "string"
+            },
+            {
+              "id": "96980c31-6829-4e5d-a08d-988fabc0f66b",
+              "name": "company_name",
+              "value": "={{ $json.company_name || $json.body?.company_name || $json.body?.data?.company_name || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "b7fd796d-e871-4c74-a12c-68d7f170ac41",
+              "name": "agent_name",
+              "value": "={{ $json.agent_name || $json.body?.agent_name || $json.body?.data?.agent_name || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "ed6a0153-ff89-4c60-a75f-ca1835b44f2f",
+              "name": "demoId",
+              "value": "={{ $json.id || $json.body?.id || $json.body?.demoId || '' }}",
+              "type": "string"
+            },
+            {
+              "id": "314e7c00-10e9-4ae4-8f3b-ccf1a7fedfb0",
+              "name": "industry",
+              "value": "={{ $json.industry || $json.body?.industry || 'healthcare' }}",
+              "type": "string"
+            },
+            {
+              "id": "a71b1e83-4561-4a5e-9234-25001371bb89",
+              "name": "category",
+              "value": "={{ $json.category || $json.body?.category || 'pain_management' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -3420,
+        340
+      ],
+      "id": "328289d7-2fa5-41bc-a4db-42d7ccf107d2",
+      "name": "Set Demo Context"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map((item, i) => {\n  let locations = item.json.body?.locations;\n  if (!locations) {\n    // fallback: try item.json.locations (sometimes data is not nested)\n    locations = item.json.locations;\n  }\n  if (typeof locations === \"string\") {\n    locations = JSON.parse(locations);\n  }\n  if (!locations || !Array.isArray(locations) || locations.length === 0) {\n    return {\n      json: {\n        ...item.json,\n        formatted_address: \"No location data\"\n      },\n      pairedItem: i\n    };\n  }\n  const loc = locations[0];\n\n  const addressParts = [\n    loc.address1,\n    loc.address2 && loc.address2.trim() !== \"\" ? loc.address2 : null,\n    loc.city,\n    loc.state + \" \" + loc.zip\n  ].filter(Boolean);\n\n  return {\n    json: {\n      ...item.json,\n      formatted_address: addressParts.join(\", \")\n    },\n    pairedItem: i\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2880,
+        340
+      ],
+      "id": "2b953dbb-dd58-4604-81e9-16ecc0f3b171",
+      "name": "Format Main Location Address"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map((item, i) => {\n  // Get the main data from the Initial Processing node (Supabase row)\n  const mainData = $items(\"Initial Processing\")[0]?.json || {};\n  // Get the Google Places result from the previous node (this node's input)\n  const googleData = item.json?.result || {};\n\n  // Find the message from the mainData, item.json, or userContext\n  const message =\n    mainData.message ||\n    item.json.message ||\n    (mainData.body && mainData.body.message) ||\n    (item.json.body && item.json.body.message) ||\n    \"\";\n\n  // CRITICAL FIX: Preserve booking state from previous interactions\n  // Get booking state from the current item (previous interaction response)\n  const bookingState = item.json.bookingState || \"\";\n  const bookingData = item.json.bookingData || \"{}\";\n\n  // Merge all context: current item, mainData, and google_place, and always include message\n  return {\n    json: {\n      ...item.json,         // preserves all context from previous nodes (headers, params, body, etc.)\n      ...mainData,          // main data from Initial Processing\n      google_place: googleData, // Google Places data\n      message,              // always include message for PreludeAgent\n      // CRITICAL FIX: Preserve booking state from previous interaction\n      bookingState,         // <-- ADDED: Preserve booking state\n      bookingData           // <-- ADDED: Preserve booking data\n    },\n    pairedItem: i\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4040,
+        580
+      ],
+      "id": "edbff683-4b44-4210-b2c1-42fdca3946d3",
+      "name": "Merge Google Place Data"
+    },
+    {
+      "parameters": {
+        "jsCode": "// CRITICAL FIX: Process only the first item to prevent duplicates\nconst items = $input.all();\n\nif (items.length === 0) {\n  return [];\n}\n\n// Process only the first item\nconst item = items[0];\n\n// Get the latest intent and next agent from PreludeAgent\nconst latestIntent = $node[\"PreludeAgent\"].json.intent || '';\nconst nextAgent = $node[\"PreludeAgent\"].json.nextAgent || '';\n\n// Get the full, merged context from Merge Google Place Data\nconst fullContext = { ...$node[\"Merge Google Place Data\"].json };\n\n// Remove the outdated agent field if it exists\nif ('agent' in fullContext) {\n  delete fullContext.agent;\n}\n\n// Set or preserve conversation_stage\nconst conversationStage = fullContext.conversation_stage || \"start\";\n\n// --- Find the user's message from all possible sources ---\nlet message = \"\";\n// 1. Directly on the merged context\nif (fullContext.message && fullContext.message.trim() !== \"\") {\n  message = fullContext.message;\n}\n// 2. In the body object (common for webhooks)\nelse if (fullContext.body && fullContext.body.message) {\n  message = fullContext.body.message;\n}\n// 3. In the original webhook node\nelse if ($node[\"Webhook\"] && $node[\"Webhook\"].json && $node[\"Webhook\"].json.body && $node[\"Webhook\"].json.body.message) {\n  message = $node[\"Webhook\"].json.body.message;\n}\n// 4. In the item itself\nelse if (item.json && item.json.message) {\n  message = item.json.message;\n}\n\n// CRITICAL FIX: Preserve booking state from previous interactions\n// Get booking state from multiple sources to ensure it's preserved\nconst webhookData = $items(\"Set Demo Context\")[1]?.json || {};\nconst previousBookingState = fullContext.bookingState || webhookData.bookingState || \"\";\nconst previousBookingData = fullContext.bookingData || webhookData.bookingData || \"{}\";\n\n// CRITICAL FIX: Check if we're in an active booking session\nconst isInBookingSession = previousBookingState && previousBookingState !== \"\" && previousBookingState !== \"complete\";\n\n// Override nextAgent if in active booking session\nlet finalNextAgent = nextAgent;\nif (isInBookingSession) {\n  finalNextAgent = \"BookingAgent\";\n}\n\n// CRITICAL FIX: Get complete demo data from Initial Processing\nconst demoData = $items(\"Initial Processing\")[0]?.json || {};\n\n// CRITICAL FIX: Create webhook data structure for chat interactions\nconst webhookDataForContext = {\n  message: message,\n  bookingState: previousBookingState,\n  bookingData: previousBookingData,\n  userAction: fullContext.userAction || \"\",\n  timestamp: new Date().toISOString()\n};\n\n// CRITICAL FIX: Create full context with enriched data\nconst fullContextForContext = {\n  google_place: fullContext.google_place || {},\n  result: fullContext.result || {},\n  // Preserve any other enriched data\n  ...Object.keys(fullContext).reduce((acc, key) => {\n    if (['google_place', 'result'].includes(key)) {\n      acc[key] = fullContext[key];\n    }\n    return acc;\n  }, {})\n};\n\n// CRITICAL FIX: Build the unified context with ALL demo information preserved\nreturn [{\n  json: {\n    ...fullContext,\n    // CRITICAL FIX: Preserve ALL demo context with proper structure\n    demoId: demoData.demoId || demoData.id || \"bd5aa8b2-84fa-4b64-986d-7458b680b5b9\",\n    company_name: demoData.company_name || \"Hassan Spine & Sports Medicine\",\n    agent_name: demoData.agent_name || \"Olivia\",\n    industry: demoData.industry || 'healthcare',\n    category: demoData.category || 'Pain Management, Sports Medicine',\n    \n    // CRITICAL FIX: Locations data - properly parsed\n    locations: demoData.locations || [],\n    formatted_address: demoData.formatted_address,\n    \n    // CRITICAL FIX: Contact information\n    contact: demoData.contact || {\n      phone: demoData.company_phone || \"(732) 759-8110\",\n      email: demoData.company_email || \"info@hassanspine.com\"\n    },\n    \n    // CRITICAL FIX: Practice details\n    specialists: demoData.specialists || [],\n    tagline: demoData.tagline,\n    logourl: demoData.logourl,\n    \n    // CRITICAL FIX: Team information\n    team_members: demoData.team_members || [],\n    social_accounts: demoData.social_accounts || [],\n    \n    // CRITICAL FIX: Services and insurance - for BookingAgent\n    services: demoData.services || [],\n    insurance_providers: demoData.insurance_providers || [],\n    \n    // Google Places enriched data\n    google_place: fullContext.google_place || {},\n    \n    // Intent and routing\n    intent: latestIntent,\n    nextAgent: finalNextAgent,\n    conversation_stage: conversationStage,\n    message,\n    \n    // CRITICAL FIX: Preserve booking state\n    bookingState: previousBookingState,\n    bookingData: previousBookingData,\n    \n    // CRITICAL FIX: Create the proper original_context structure that BookingAgent expects\n    original_context: {\n      demoData: {\n        // ALL Dr. Hassan's business data from the 10-step form\n        id: demoData.demoId || demoData.id,\n        company_name: demoData.company_name,\n        agent_name: demoData.agent_name,\n        industry: demoData.industry,\n        category: demoData.category,\n        locations: demoData.locations,\n        specialists: demoData.specialists,\n        team_members: demoData.team_members,\n        social_accounts: demoData.social_accounts,\n        services: demoData.services,\n        insurance_providers: demoData.insurance_providers,\n        contact: demoData.contact,\n        tagline: demoData.tagline,\n        logourl: demoData.logourl,\n        // Preserve all other demo fields\n        ...Object.keys(demoData).reduce((acc, key) => {\n          if (!['message', 'intent', 'nextAgent', 'bookingState', 'bookingData', 'confidence', 'urgency', 'timestamp', 'intent_detection_method'].includes(key)) {\n            acc[key] = demoData[key];\n          }\n          return acc;\n        }, {})\n      },\n      webhookData: webhookDataForContext,\n      fullContext: fullContextForContext\n    }\n  },\n  pairedItem: 0\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3220,
+        580
+      ],
+      "id": "c7a17d6d-4b5f-4775-b65b-ad38296cf92f",
+      "name": "Pass Context Forward"
+    },
+    {
+      "parameters": {},
+      "type": "CUSTOM.maestroAgent",
+      "typeVersion": 1,
+      "position": [
+        -2440,
+        580
+      ],
+      "id": "1bca91f9-1dd2-4b0a-8d0b-4fdc3b1899d8",
+      "name": "MaestroAgent"
+    },
+    {
+      "parameters": {
+        "onboardingData": "={{$json}}"
+      },
+      "type": "CUSTOM.preludeAgent",
+      "typeVersion": 1,
+      "position": [
+        -3820,
+        580
+      ],
+      "id": "588a7a58-7343-43e0-876d-c568e9822a3a",
+      "name": "PreludeAgent",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {},
+      "type": "CUSTOM.humanAgent",
+      "typeVersion": 1,
+      "position": [
+        -1260,
+        560
+      ],
+      "id": "2c06acd7-3775-4554-8a30-c61fe16b5789",
+      "name": "HumanAgent"
+    },
+    {
+      "parameters": {},
+      "type": "CUSTOM.rhythmAgent",
+      "typeVersion": 1,
+      "position": [
+        940,
+        -40
+      ],
+      "id": "c3d97462-e693-4bda-9c70-34d59afd1fc5",
+      "name": "RhythmAgent"
+    },
+    {
+      "parameters": {
+        "userIntent": "=={{ $json.message || $json.original_context?.webhookData?.message || '' }}",
+        "context": "={{$json.context}}",
+        "industry": "=={{ $json.industry || 'healthcare' }}"
+      },
+      "type": "CUSTOM.virtuosoAgent",
+      "typeVersion": 1,
+      "position": [
+        -1040,
+        1140
+      ],
+      "id": "d468dab9-12c7-4018-9e82-789077c95481",
+      "name": "VirtuosoAgent"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "84442a62-3915-42ce-9606-eb05336de0d3",
+              "name": "context",
+              "value": "=     {\n       // CRITICAL FIX: Extract data from the new original_context structure\n       demoData: $json.original_context?.demoData || {},\n       webhookData: $json.original_context?.webhookData || {},\n       fullContext: $json.original_context?.fullContext || {},\n       \n       // Extract key business information\n       companyName: $json.original_context?.demoData?.company_name || $json.company_name || \"Hassan Spine & Sports Medicine\",\n       agentName: $json.original_context?.demoData?.agent_name || $json.agent_name || \"Olivia\",\n       procedures: $json.original_context?.demoData?.services || [],\n       locations: $json.original_context?.demoData?.locations || [],\n       contact: $json.original_context?.demoData?.contact || {\n         phone: $json.original_context?.demoData?.company_phone || \"(732) 759-8110\",\n         email: $json.original_context?.demoData?.company_email || \"info@hassanspine.com\"\n       },\n       insuranceNote: $json.original_context?.demoData?.insurance_providers || [],\n       userMessage: $json.message || $json.original_context?.webhookData?.message || \"\",\n       intent: $json.intent || \"general\",\n       industry: $json.industry || \"healthcare\",\n       category: $json.category || \"Pain Management, Sports Medicine\"\n     }",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1280,
+        1140
+      ],
+      "id": "032b7275-92c9-4737-96d5-f3e8abd458ec",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://twtxouksqmgexkfwmlub.supabase.co/rest/v1/demo?id=eq.{{$json[\"demoId\"]}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR3dHhvdWtzcW1nZXhrZndtbHViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY5ODU4MjEsImV4cCI6MjA2MjU2MTgyMX0.6x4kuGgORXttRiLSd6qIN-IFrU3s2VXk4mBup76FQuU"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR3dHhvdWtzcW1nZXhrZndtbHViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY5ODU4MjEsImV4cCI6MjA2MjU2MTgyMX0.6x4kuGgORXttRiLSd6qIN-IFrU3s2VXk4mBup76FQuU"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "logourl",
+              "value": "={{ $json.body.logourl }}"
+            },
+            {
+              "name": "tagline",
+              "value": "={{ $json.body.tagline }}"
+            },
+            {
+              "name": "specialists",
+              "value": "={{ $json.body.specialists }}"
+            },
+            {
+              "name": "updated_at",
+              "value": "={{ $json.body.updated_at }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -3420,
+        580
+      ],
+      "id": "f234a20b-3e75-4db0-b40c-86d95b519050",
+      "name": "Supabase Patch",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "url": "https://twtxouksqmgexkfwmlub.supabase.co/rest/v1/demo",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "id",
+              "value": "=eq.{{ $json.demoId || $json.body.demoId || $json.body.id }}"
+            },
+            {
+              "name": "select",
+              "value": "*"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR3dHhvdWtzcW1nZXhrZndtbHViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY5ODU4MjEsImV4cCI6MjA2MjU2MTgyMX0.6x4kuGgORXttRiLSd6qIN-IFrU3s2VXk4mBup76FQuU"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR3dHhvdWtzcW1nZXhrZndtbHViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY5ODU4MjEsImV4cCI6MjA2MjU2MTgyMX0.6x4kuGgORXttRiLSd6qIN-IFrU3s2VXk4mBup76FQuU"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -4260,
+        220
+      ],
+      "id": "8c37ca5c-b617-4fed-86e0-38bd2990e4fc",
+      "name": "Chat Trigger"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.1,
+      "position": [
+        -3800,
+        340
+      ],
+      "id": "63bf1b42-2069-4baf-966b-4fb48ca7e1f2",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [
+        -1060,
+        560
+      ],
+      "id": "619c0782-b5a8-4f7d-9884-811a794602ca",
+      "name": "Respond to Webhook2"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [
+        -1060,
+        760
+      ],
+      "id": "47cb2ccd-7343-4a99-accc-1c1d5db41ab8",
+      "name": "Respond to Webhook3"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [
+        -1060,
+        960
+      ],
+      "id": "49d956a5-b18d-4f1c-9fb9-4b6b10301f65",
+      "name": "Respond to Webhook4"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [
+        -840,
+        1140
+      ],
+      "id": "e808a921-9564-4d01-b7c0-e515113758f3",
+      "name": "Respond to Webhook5"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [
+        -1040,
+        1340
+      ],
+      "id": "145941fe-5b2f-4d87-8073-a253a9c36953",
+      "name": "Respond to Webhook6"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Add this as a Code node before Chat Trigger\nconst demoId = $json.demoId || $json.body?.demoId || $json.body?.id || \"\";\n\nif (!demoId || demoId.trim() === \"\") {\n  // Return a default demo or error\n  return [{\n    json: {\n      ...$json,\n      demoId: \"bd5aa8b2-84fa-4b64-986d-7458b680b5b9\", // Use your actual demo ID\n      error: \"No demo ID provided, using default\"\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    ...$json,\n    demoId\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4480,
+        220
+      ],
+      "id": "c10a31d4-dcb3-448b-a612-2c8948863ad5",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pass through the agent_response and suggestedActions for the webhook response\nreturn [{\n  json: {\n    agent_response: $json.agent_response || \"No response from assistant.\",\n    suggestedActions: $json.suggestedActions || []\n  },\n  pairedItem: 0\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -680,
+        360
+      ],
+      "id": "096be9a5-b555-4840-8fd2-eb4051d33187",
+      "name": "Format Prompt"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [
+        -300,
+        360
+      ],
+      "id": "c1a7bc46-ea51-4286-a510-93a1fa2c2896",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{\n  json: {\n    agent_response: $json.agent_response,\n    suggestedActions: $json.suggestedActions\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -480,
+        360
+      ],
+      "id": "e50a1aa4-715b-4475-aeaa-4eb66bd6b8d4",
+      "name": "Format for Webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "// CRITICAL FIX: BookingAgent Complete Data Collection and Summary\n// This fixes the issue where the summary shows \"Not provided\" for all data\n// Replace the entire BookingAgent node code with this:\n\n// FIXED BookingAgent Node: Dynamic, Real-world Healthcare Booking Flow with COMPREHENSIVE VALIDATION\n// Works for ANY healthcare provider, not just Dr. Hassan\n// 1. Are you a New Patient or Existing Patient? (FIRST STEP - with buttons)\n// 2. What is your First Name and Last Name? (collect both in one step)\n// 3. Date of Birth\n// 4. Phone\n// 5. Email\n// 6. Which location is more convenient for you? (Show dynamic locations as quick answer buttons)\n// 7. Pain Level (Show buttons from 1 to 10)\n// 8. Symptoms (free text)\n// 9. Procedure they are interested in (show as buttons from provider's services)\n// 10. What insurance do you have? (show dynamic providers as buttons)\n// 11. For insurance, ask additional questions from the Insurance Verification form\n// 12. Any additional info the patient would like to provide? (free text)\n\nconst items = $input.all();\n\n// FIXED: Process only the first item to prevent duplicates\nconst combinedItem = items[0];\n\n// FIXED: Extract data from the new original_context structure\nconst demoData = combinedItem.json.original_context?.demoData || combinedItem.json;\nconst webhookData = combinedItem.json.original_context?.webhookData || {};\nconst fullContext = combinedItem.json.original_context?.fullContext || {};\n\n// Extract key information - DYNAMIC FOR ANY PROVIDER\nconst demoId = demoData.id || demoData.demoId;\n\n// Extract company and agent info from data - DYNAMIC FOR ANY PROVIDER\nlet companyName = demoData.company_name || demoData.companyName || \"our practice\";\nlet agentName = demoData.agent_name || demoData.agentName || \"your assistant\";\n\n// Extract locations from demo data - DYNAMIC\nconst locations = demoData.locations || [];\nconst locationNames = locations.map(loc => loc.city).filter(Boolean);\n\n// CRITICAL FIX: Get services and insurance from the enhanced data structure\nlet serviceNames = [];\nlet insuranceProviders = [];\n\n// CRITICAL FIX: Get services from the demo data (from Initial Processing)\nif (demoData && demoData.services && Array.isArray(demoData.services)) {\n  serviceNames = demoData.services;\n  console.log(\"🔧 DEBUG - Using services from demo data:\", serviceNames);\n} else {\n  // Fallback to hardcoded services for healthcare industry\n  serviceNames = [\n    \"Spine Surgery\",\n    \"Non-Surgical\",\n    \"Podiatry\", \n    \"Orthopedics\",\n    \"Spinal Conditions\",\n    \"Knee Injury\",\n    \"Shoulder Injury\",\n    \"Arthritis\",\n    \"Joint Pain\",\n    \"PRP Therapy\",\n    \"Radiofrequency Ablation\",\n    \"Spinal Cord Stimulation\",\n    \"Pain Relief\",\n    \"Sports Injury\",\n    \"Sports Medicine\"\n  ];\n  console.log(\"🔧 DEBUG - Using fallback healthcare services:\", serviceNames);\n}\n\n// CRITICAL FIX: Get insurance providers from the demo data\nif (demoData && demoData.insurance_providers && Array.isArray(demoData.insurance_providers)) {\n  insuranceProviders = demoData.insurance_providers;\n  console.log(\"🔧 DEBUG - Using insurance providers from demo data:\", insuranceProviders);\n} else {\n  // Fallback to common insurance providers\n  insuranceProviders = [\n    \"Aetna\",\n    \"Blue Cross Blue Shield\", \n    \"Cigna\",\n    \"UnitedHealth\",\n    \"Humana\",\n    \"Kaiser Permanente\",\n    \"Anthem\",\n    \"Molina Healthcare\"\n  ];\n  console.log(\"🔧 DEBUG - Using fallback insurance providers:\", insuranceProviders);\n}\n\nconsole.log(\"🔧 DEBUG - Demo data:\", demoData);\nconsole.log(\"🔧 DEBUG - Webhook data:\", webhookData);\nconsole.log(\"🔧 DEBUG - Using company name:\", companyName);\nconsole.log(\"🔧 DEBUG - Using agent name:\", agentName);\nconsole.log(\"🔧 DEBUG - Available locations:\", locationNames);\nconsole.log(\"🔧 DEBUG - Available services:\", serviceNames);\n\n// COMPREHENSIVE VALIDATION FUNCTIONS\nconst validationUtils = {\n  // Validate patient type (new/existing)\n  validatePatientType: (input) => {\n    if (!input || typeof input !== 'string') return { isValid: false, error: \"Please specify if you're a new or existing patient.\" };\n    const inputLower = input.toLowerCase();\n    if (inputLower.includes('new') || inputLower.includes('new_patient')) {\n      return { isValid: true, value: 'new' };\n    } else if (inputLower.includes('existing') || inputLower.includes('existing_patient')) {\n      return { isValid: true, value: 'existing' };\n    }\n    return { isValid: false, error: \"Please specify if you're a new or existing patient.\" };\n  },\n\n  // Validate full name (first and last name) with auto-correction\n  validateFullName: (input) => {\n    if (!input || typeof input !== 'string') return { isValid: false, error: \"Please provide your first and last name.\" };\n    const trimmed = input.trim();\n    if (trimmed.length < 2) return { isValid: false, error: \"Please provide your first and last name.\" };\n    \n    const nameParts = trimmed.split(' ').filter(part => part.length > 0);\n    if (nameParts.length < 2) return { isValid: false, error: \"Please provide both your first and last name.\" };\n    \n    // Check for valid characters (letters, spaces, hyphens, apostrophes)\n    const nameRegex = /^[a-zA-Z\\s\\-']+$/;\n    if (!nameRegex.test(trimmed)) return { isValid: false, error: \"Please provide a valid name using only letters, spaces, hyphens, and apostrophes.\" };\n    \n    // Auto-correct name formatting (capitalize first letter of each part)\n    const correctedName = nameParts.map(part => \n      part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()\n    ).join(' ');\n    \n    return { isValid: true, value: correctedName };\n  },\n\n  // Validate date of birth\n  validateDateOfBirth: (input) => {\n    if (!input || typeof input !== 'string') return { isValid: false, error: \"Please provide your date of birth.\" };\n    const trimmed = input.trim();\n    \n    // Check multiple date formats\n    const dateFormats = [\n      /^\\d{1,2}\\/\\d{1,2}\\/\\d{4}$/, // MM/DD/YYYY\n      /^\\d{1,2}-\\d{1,2}-\\d{4}$/,   // MM-DD-YYYY\n      /^\\d{4}-\\d{1,2}-\\d{1,2}$/,   // YYYY-MM-DD\n      /^\\d{8}$/                     // MMDDYYYY\n    ];\n    \n    let isValidFormat = false;\n    for (const format of dateFormats) {\n      if (format.test(trimmed)) {\n        isValidFormat = true;\n        break;\n      }\n    }\n    \n    if (!isValidFormat) return { isValid: false, error: \"Please provide your date of birth in a valid format (e.g., MM/DD/YYYY).\" };\n    \n    // Basic age validation (must be reasonable)\n    const currentYear = new Date().getFullYear();\n    const yearMatch = trimmed.match(/\\d{4}/);\n    if (yearMatch) {\n      const birthYear = parseInt(yearMatch[0]);\n      if (birthYear < 1900 || birthYear > currentYear) {\n        return { isValid: false, error: \"Please provide a valid date of birth.\" };\n      }\n    }\n    \n    return { isValid: true, value: trimmed };\n  },\n\n  // Validate phone number\n  validatePhone: (input) => {\n    if (!input || typeof input !== 'string') return { isValid: false, error: \"Please provide your phone number.\" };\n    const trimmed = input.trim();\n    \n    // Remove all non-digit characters for validation\n    const digitsOnly = trimmed.replace(/\\D/g, '');\n    \n    if (digitsOnly.length < 10) return { isValid: false, error: \"Please provide a valid phone number with at least 10 digits.\" };\n    if (digitsOnly.length > 15) return { isValid: false, error: \"Please provide a valid phone number.\" };\n    \n    // Check for reasonable phone number patterns\n    const phoneRegex = /^[\\+]?[1-9][\\d]{0,15}$/;\n    if (!phoneRegex.test(digitsOnly)) return { isValid: false, error: \"Please provide a valid phone number.\" };\n    \n    return { isValid: true, value: trimmed };\n  },\n\n  // Validate email address\n  validateEmail: (input) => {\n    if (!input || typeof input !== 'string') return { isValid: false, error: \"Please provide your email address.\" };\n    const trimmed = input.trim();\n    \n    // Basic email validation\n    const emailRegex = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;\n    if (!emailRegex.test(trimmed)) return { isValid: false, error: \"Please provide a valid email address.\" };\n    \n    // Check for reasonable length\n    if (trimmed.length > 254) return { isValid: false, error: \"Email address is too long.\" };\n    \n    return { isValid: true, value: trimmed };\n  },\n\n  // Validate location selection\n  validateLocation: (input, availableLocations) => {\n    if (!input || typeof input !== 'string') return { isValid: false, error: \"Please select a location.\" };\n    const trimmed = input.trim();\n    \n    // If we have available locations, validate against them\n    if (availableLocations && availableLocations.length > 0) {\n      const locationLower = trimmed.toLowerCase();\n      const matchingLocation = availableLocations.find(loc => \n        loc.toLowerCase() === locationLower || \n        loc.toLowerCase().includes(locationLower) ||\n        locationLower.includes(loc.toLowerCase())\n      );\n      \n      if (!matchingLocation) {\n        return { isValid: false, error: `Please select from our available locations: ${availableLocations.join(', ')}` };\n      }\n      \n      return { isValid: true, value: matchingLocation };\n    }\n    \n    // If no available locations, just validate it's not empty\n    if (trimmed.length < 2) return { isValid: false, error: \"Please provide a valid location.\" };\n    \n    return { isValid: true, value: trimmed };\n  },\n\n  // Validate pain level\n  validatePainLevel: (input) => {\n    if (!input || typeof input !== 'string') return { isValid: false, error: \"Please provide your pain level.\" };\n    const trimmed = input.trim();\n    \n    // Check if it's a number\n    const painLevel = parseInt(trimmed);\n    if (isNaN(painLevel)) return { isValid: false, error: \"Please provide your pain level as a number from 1 to 10.\" };\n    \n    if (painLevel < 1 || painLevel > 10) return { isValid: false, error: \"Please provide your pain level as a number from 1 to 10.\" };\n    \n    return { isValid: true, value: painLevel.toString() };\n  },\n\n  // Validate symptoms (free text)\n  validateSymptoms: (input) => {\n    if (!input || typeof input !== 'string') return { isValid: false, error: \"Please describe your symptoms.\" };\n    const trimmed = input.trim();\n    \n    if (trimmed.length < 3) return { isValid: false, error: \"Please provide a more detailed description of your symptoms.\" };\n    if (trimmed.length > 500) return { isValid: false, error: \"Please provide a shorter description of your symptoms.\" };\n    \n    return { isValid: true, value: trimmed };\n  },\n\n  // Validate procedure selection\n  validateProcedure: (input, availableProcedures) => {\n    if (!input || typeof input !== 'string') return { isValid: false, error: \"Please select a procedure.\" };\n    const trimmed = input.trim();\n    \n    // If we have available procedures, validate against them\n    if (availableProcedures && availableProcedures.length > 0) {\n      const procedureLower = trimmed.toLowerCase();\n      const matchingProcedure = availableProcedures.find(proc => \n        proc.toLowerCase() === procedureLower || \n        proc.toLowerCase().includes(procedureLower) ||\n        procedureLower.includes(proc.toLowerCase())\n      );\n      \n      if (!matchingProcedure && !procedureLower.includes('other')) {\n        return { isValid: false, error: `Please select from our available procedures: ${availableProcedures.join(', ')}` };\n      }\n      \n      return { isValid: true, value: matchingProcedure || trimmed };\n    }\n    \n    // If no available procedures, just validate it's not empty\n    if (trimmed.length < 2) return { isValid: false, error: \"Please provide a valid procedure.\" };\n    \n    return { isValid: true, value: trimmed };\n  },\n\n  // Validate insurance selection\n  validateInsurance: (input, availableInsurance) => {\n    if (!input || typeof input !== 'string') return { isValid: false, error: \"Please provide your insurance information.\" };\n    const trimmed = input.trim();\n    \n    // If we have available insurance providers, validate against them\n    if (availableInsurance && availableInsurance.length > 0) {\n      const insuranceLower = trimmed.toLowerCase();\n      const matchingInsurance = availableInsurance.find(ins => \n        ins.toLowerCase() === insuranceLower || \n        ins.toLowerCase().includes(insuranceLower) ||\n        insuranceLower.includes(ins.toLowerCase())\n      );\n      \n      if (!matchingInsurance && !insuranceLower.includes('other')) {\n        return { isValid: false, error: `Please select from our accepted insurance providers: ${availableInsurance.join(', ')}` };\n      }\n      \n      return { isValid: true, value: matchingInsurance || trimmed };\n    }\n    \n    // If no available insurance providers, just validate it's not empty\n    if (trimmed.length < 2) return { isValid: false, error: \"Please provide valid insurance information.\" };\n    \n    return { isValid: true, value: trimmed };\n  },\n\n  // Validate policy holder name (FIXED: with auto-correction like patient name)\n  validatePolicyHolder: (input) => {\n    if (!input || typeof input !== 'string') return { isValid: false, error: \"Please provide the Policy Holder's First Name and Last Name.\" };\n    const trimmed = input.trim();\n    \n    if (trimmed.length < 2) return { isValid: false, error: \"Please provide the Policy Holder's First Name and Last Name.\" };\n    \n    const nameParts = trimmed.split(' ').filter(part => part.length > 0);\n    if (nameParts.length < 2) return { isValid: false, error: \"Please provide both the Policy Holder's First Name and Last Name.\" };\n    \n    // Check for valid characters (letters, spaces, hyphens, apostrophes)\n    const nameRegex = /^[a-zA-Z\\s\\-']+$/;\n    if (!nameRegex.test(trimmed)) return { isValid: false, error: \"Please provide a valid name using only letters, spaces, hyphens, and apostrophes.\" };\n    \n    // Auto-correct name formatting (capitalize first letter of each part)\n    const correctedName = nameParts.map(part => \n      part.charAt(0).toUpperCase() + part.slice(1).toLowerCase()\n    ).join(' ');\n    \n    return { isValid: true, value: correctedName };\n  },\n\n  // Validate insurance ID\n  validateInsuranceId: (input) => {\n    if (!input || typeof input !== 'string') return { isValid: false, error: \"Please provide your insurance ID number.\" };\n    const trimmed = input.trim();\n    \n    if (trimmed.length < 3) return { isValid: false, error: \"Please provide a valid insurance ID number.\" };\n    if (trimmed.length > 20) return { isValid: false, error: \"Insurance ID number seems too long. Please check and try again.\" };\n    \n    return { isValid: true, value: trimmed };\n  },\n\n  // Validate group number\n  validateGroupNumber: (input) => {\n    if (!input || typeof input !== 'string') return { isValid: false, error: \"Please provide your group number.\" };\n    const trimmed = input.trim();\n    \n    if (trimmed.length < 2) return { isValid: false, error: \"Please provide a valid group number.\" };\n    if (trimmed.length > 15) return { isValid: false, error: \"Group number seems too long. Please check and try again.\" };\n    \n    return { isValid: true, value: trimmed };\n  },\n\n  // Validate additional info (optional)\n  validateAdditionalInfo: (input) => {\n    if (!input || typeof input !== 'string') return { isValid: true, value: \"\" }; // Optional field\n    const trimmed = input.trim();\n    \n    if (trimmed.length > 1000) return { isValid: false, error: \"Additional information is too long. Please provide a shorter description.\" };\n    \n    return { isValid: true, value: trimmed };\n  }\n};\n\n// FIXED: Get current booking state and data from multiple possible sources\nlet currentBookingState = combinedItem.json.bookingState || webhookData.bookingState || \"\";\n// If bookingState is empty or undefined, start with initial state\nif (!currentBookingState || currentBookingState === \"\") {\n  currentBookingState = \"initial\";\n}\n\n// CRITICAL FIX: Properly initialize and preserve booking data\nlet currentBookingData = {};\n\ntry {\n  // Try to get booking data from multiple sources\n  const bookingDataSource = combinedItem.json.bookingData || webhookData.bookingData || \"{}\";\n  \n  if (typeof bookingDataSource === 'string') {\n    currentBookingData = JSON.parse(bookingDataSource);\n  } else if (typeof bookingDataSource === 'object') {\n    currentBookingData = bookingDataSource;\n  }\n} catch (error) {\n  console.log(\"🔧 DEBUG - Error parsing booking data:\", error);\n  currentBookingData = {};\n}\n\n// FIXED: Get user input from multiple possible sources\nconst userInput = combinedItem.json.message || webhookData.message || \"\";\nconst userAction = webhookData.userAction || \"\";\n\n// Determine the actual action from user input or button click\nlet detectedAction = userAction;\nif (!detectedAction && userInput) {\n  // Check if user input contains action keywords\n  const inputLower = userInput.toLowerCase();\n  if (inputLower.includes('new patient') || inputLower.includes('new_patient')) {\n    detectedAction = 'new_patient';\n  } else if (inputLower.includes('existing patient') || inputLower.includes('existing_patient')) {\n    detectedAction = 'existing_patient';\n  }\n}\n\nconsole.log(\"🔧 DEBUG - User input:\", userInput);\nconsole.log(\"🔧 DEBUG - User action:\", userAction);\nconsole.log(\"🔧 DEBUG - Detected action:\", detectedAction);\nconsole.log(\"🔧 DEBUG - Current booking state:\", currentBookingState);\nconsole.log(\"🔧 DEBUG - Current booking data:\", currentBookingData);\n\n// Generate response based on current state and action\nlet agentResponse = \"\";\nlet suggestedActions = [];\nlet validationError = null;\n\n// DYNAMIC HEALTHCARE BOOKING FLOW - WORKS FOR ANY PROVIDER WITH VALIDATION\nif (currentBookingState === \"initial\") {\n  // Initial state - DYNAMIC response for any healthcare provider\n  agentResponse = `Hi there! I'm ${agentName}, and I'm here to help you get the care you need at ${companyName}. I understand this might be a difficult time for you, and I want to make this process as gentle and smooth as possible. To get started, could you please let me know if you're a:`;\n  suggestedActions = [\n    { text: \"New Patient\", action: \"new_patient\" },\n    { text: \"Existing Patient\", action: \"existing_patient\" }\n  ];\n  currentBookingState = 'patient_type';\n  console.log(\"🔧 DEBUG - Starting booking flow - asking for patient type\");\n} else if (currentBookingState === \"patient_type\") {\n  // Handle patient type selection with validation\n  if (detectedAction === 'new_patient' || detectedAction === 'existing_patient') {\n    const patientType = detectedAction === 'new_patient' ? 'new' : 'existing';\n    currentBookingData.patientType = patientType;\n    agentResponse = `Thank you so much for letting me know you're a ${patientType} patient. I'm here to make this as easy as possible for you. Could you please share your First Name and Last Name with me?`;\n    currentBookingState = 'collecting_name';\n    console.log(\"🔧 DEBUG - Patient type selected via button:\", patientType);\n  } else if (userInput && userInput.trim()) {\n    // Handle text input for patient type with validation\n    const validation = validationUtils.validatePatientType(userInput);\n    if (validation.isValid) {\n      currentBookingData.patientType = validation.value;\n      agentResponse = `Thank you for letting me know you're a ${validation.value} patient. Could you please share your First Name and Last Name with me?`;\n      currentBookingState = 'collecting_name';\n      console.log(\"🔧 DEBUG - Patient type validated:\", validation.value);\n    } else {\n      agentResponse = validation.error;\n      suggestedActions = [\n        { text: \"New Patient\", action: \"new_patient\" },\n        { text: \"Existing Patient\", action: \"existing_patient\" }\n      ];\n      validationError = validation.error;\n    }\n  } else {\n    agentResponse = `I didn't catch that. Are you a new patient or an existing patient?`;\n    suggestedActions = [\n      { text: \"New Patient\", action: \"new_patient\" },\n      { text: \"Existing Patient\", action: \"existing_patient\" }\n    ];\n  }\n} else if (currentBookingState === \"collecting_name\") {\n  // User provided name - validate and move to Step 2: Date of Birth\n  if (userInput && userInput.trim()) {\n    const validation = validationUtils.validateFullName(userInput);\n    if (validation.isValid) {\n      // Split the validated name into first and last name\n      const nameParts = validation.value.split(' ');\n      currentBookingData.firstName = nameParts[0];\n      currentBookingData.lastName = nameParts.slice(1).join(' ');\n      agentResponse = `Thank you ${currentBookingData.firstName}! I have ${currentBookingData.firstName} ${currentBookingData.lastName} as your name. Could you please share your Date of Birth? (Example: 01/15/1985)`;\n      currentBookingState = 'collecting_dob';\n      console.log(\"🔧 DEBUG - Name validated:\", validation.value);\n    } else {\n      agentResponse = validation.error;\n      validationError = validation.error;\n    }\n  } else {\n    agentResponse = `I didn't catch your name. Could you please share your First Name and Last Name?`;\n  }\n} else if (currentBookingState === \"collecting_dob\") {\n  // Step 2: Date of Birth collected - validate and move to Step 3: Phone\n  if (userInput && userInput.trim()) {\n    const validation = validationUtils.validateDateOfBirth(userInput);\n    if (validation.isValid) {\n      currentBookingData.dateOfBirth = validation.value;\n      agentResponse = `Perfect! Now could you please share your Phone Number? This helps us reach you if we need to confirm anything about your appointment. (Example: +15031234567)`;\n      currentBookingState = 'collecting_phone';\n      console.log(\"🔧 DEBUG - DOB validated:\", validation.value);\n    } else {\n      agentResponse = validation.error;\n      validationError = validation.error;\n    }\n  } else {\n    agentResponse = `I didn't catch your date of birth. Could you please share it?`;\n  }\n} else if (currentBookingState === \"collecting_phone\") {\n  // Step 3: Phone collected - validate and move to Step 4: Email\n  if (userInput && userInput.trim()) {\n    const validation = validationUtils.validatePhone(userInput);\n    if (validation.isValid) {\n      currentBookingData.phone = validation.value;\n      agentResponse = `Great! And could you please share your Email Address?`;\n      currentBookingState = 'collecting_email';\n      console.log(\"🔧 DEBUG - Phone validated:\", validation.value);\n    } else {\n      agentResponse = validation.error;\n      validationError = validation.error;\n    }\n  } else {\n    agentResponse = `I didn't catch your phone number. Could you please share it?`;\n  }\n} else if (currentBookingState === \"collecting_email\") {\n  // Step 4: Email collected - validate and move to Step 5: Location\n  if (userInput && userInput.trim()) {\n    const validation = validationUtils.validateEmail(userInput);\n    if (validation.isValid) {\n      currentBookingData.email = validation.value;\n      agentResponse = `Excellent! Which of our locations would be most convenient for you? We want to make sure you can get to us easily.`;\n      \n      // DYNAMIC: Generate location buttons from demo data\n      if (locationNames.length > 0) {\n        suggestedActions = locationNames.map(location => ({\n          text: location,\n          action: `location_${location.toLowerCase().replace(/\\s+/g, '_')}`\n        }));\n      } else {\n        // Fallback buttons if no locations in demo data\n        suggestedActions = [\n          { text: \"Main Office\", action: \"location_main_office\" },\n          { text: \"Other Location\", action: \"location_other\" }\n        ];\n      }\n      \n      currentBookingState = 'collecting_location';\n      console.log(\"🔧 DEBUG - Email validated, progressing to location\");\n    } else {\n      agentResponse = validation.error;\n      validationError = validation.error;\n    }\n  } else {\n    agentResponse = `I didn't catch your email address. Could you please share it?`;\n  }\n} else if (currentBookingState === \"collecting_location\") {\n  // Step 5: Location selection - validate and move to Step 6: Pain Level\n  if (detectedAction && detectedAction.startsWith('location_')) {\n    const location = detectedAction.replace('location_', '').replace(/_/g, ' ');\n    const validation = validationUtils.validateLocation(location, locationNames);\n    if (validation.isValid) {\n      currentBookingData.location = validation.value;\n      agentResponse = `Perfect! ${validation.value} is a great choice. Now, I understand this might be difficult to talk about, but it helps us understand your situation better so we can get you the right care. On a scale of 1 to 10, how would you rate your pain level right now?`;\n      suggestedActions = Array.from({length: 10}, (_, i) => ({\n        text: `${i + 1}`,\n        action: `pain_level_${i + 1}`\n      }));\n      currentBookingState = 'collecting_pain_level';\n      console.log(\"🔧 DEBUG - Location validated:\", validation.value);\n    } else {\n      agentResponse = validation.error;\n      validationError = validation.error;\n    }\n  } else if (userInput && userInput.trim()) {\n    // Handle text input for location with validation\n    const validation = validationUtils.validateLocation(userInput, locationNames);\n    if (validation.isValid) {\n      currentBookingData.location = validation.value;\n      agentResponse = `Thank you! Now, I understand this might be difficult to talk about, but it helps us understand your situation better so we can get you the right care. On a scale of 1 to 10, how would you rate your pain level right now?`;\n      suggestedActions = Array.from({length: 10}, (_, i) => ({\n        text: `${i + 1}`,\n        action: `pain_level_${i + 1}`\n      }));\n      currentBookingState = 'collecting_pain_level';\n      console.log(\"🔧 DEBUG - Location validated via text:\", validation.value);\n    } else {\n      agentResponse = validation.error;\n      validationError = validation.error;\n    }\n  }\n} else if (currentBookingState === \"collecting_pain_level\") {\n  // Step 6: Pain Level - validate and move to Step 7: Symptoms\n  if (detectedAction && detectedAction.startsWith('pain_level_')) {\n    const painLevel = detectedAction.replace('pain_level_', '');\n    const validation = validationUtils.validatePainLevel(painLevel);\n    if (validation.isValid) {\n      currentBookingData.painLevel = validation.value;\n      agentResponse = `Thank you for sharing that with me. Could you please describe your symptoms? This helps us understand what you're experiencing.`;\n      currentBookingState = 'collecting_symptoms';\n      console.log(\"🔧 DEBUG - Pain level validated:\", validation.value);\n    } else {\n      agentResponse = validation.error;\n      validationError = validation.error;\n    }\n  } else if (userInput && userInput.trim()) {\n    // Handle text input for pain level with validation\n    const validation = validationUtils.validatePainLevel(userInput);\n    if (validation.isValid) {\n      currentBookingData.painLevel = validation.value;\n      agentResponse = `Thank you for sharing that with me. Could you please describe your symptoms? This helps us understand what you're experiencing.`;\n      currentBookingState = 'collecting_symptoms';\n      console.log(\"🔧 DEBUG - Pain level validated via text:\", validation.value);\n    } else {\n      agentResponse = validation.error;\n      validationError = validation.error;\n    }\n  }\n} else if (currentBookingState === \"collecting_symptoms\") {\n  // Step 7: Symptoms - validate and move to Step 8: Procedure\n  if (userInput && userInput.trim()) {\n    const validation = validationUtils.validateSymptoms(userInput);\n    if (validation.isValid) {\n      currentBookingData.symptoms = validation.value;\n      agentResponse = `Thank you for sharing your symptoms. What procedure or treatment are you interested in?`;\n      \n      // DYNAMIC: Generate procedure buttons from Supabase services\n      if (serviceNames.length > 0) {\n        suggestedActions = serviceNames.map(service => ({\n          text: service,\n          action: `procedure_${service.toLowerCase().replace(/\\s+/g, '_')}`\n        }));\n        suggestedActions.push({ text: \"Other\", action: \"procedure_other\" });\n      } else {\n        // Fallback buttons if no services found in Supabase\n        suggestedActions = [\n          { text: \"Consultation\", action: \"procedure_consultation\" },\n          { text: \"Treatment\", action: \"procedure_treatment\" },\n          { text: \"Other\", action: \"procedure_other\" }\n        ];\n      }\n      \n      currentBookingState = 'collecting_procedure';\n      console.log(\"🔧 DEBUG - Symptoms validated:\", validation.value);\n    } else {\n      agentResponse = validation.error;\n      validationError = validation.error;\n    }\n  }\n} else if (currentBookingState === \"collecting_procedure\") {\n  // Step 8: Procedure - validate and move to Step 9: Insurance\n  if (detectedAction && detectedAction.startsWith('procedure_')) {\n    const procedure = detectedAction.replace('procedure_', '').replace(/_/g, ' ');\n    const validation = validationUtils.validateProcedure(procedure, serviceNames);\n    if (validation.isValid) {\n      currentBookingData.procedure = validation.value;\n      agentResponse = `Great! What insurance do you have? (Note: We do not accept Medicare or Medicaid at this time.)`;\n      \n      // DYNAMIC: Generate insurance buttons from Supabase\n      if (insuranceProviders.length > 0) {\n        suggestedActions = insuranceProviders.map(provider => ({\n          text: provider,\n          action: `insurance_${provider.toLowerCase().replace(/\\s+/g, '_')}`\n        }));\n        suggestedActions.push({ text: \"Other\", action: \"insurance_other\" });\n      } else {\n        // Fallback buttons if no insurance providers found\n        suggestedActions = [\n          { text: \"Aetna\", action: \"insurance_aetna\" },\n          { text: \"Blue Cross Blue Shield\", action: \"insurance_bcbs\" },\n          { text: \"Cigna\", action: \"insurance_cigna\" },\n          { text: \"UnitedHealth\", action: \"insurance_unitedhealth\" },\n          { text: \"Other\", action: \"insurance_other\" }\n        ];\n      }\n      \n      currentBookingState = 'collecting_insurance';\n      console.log(\"🔧 DEBUG - Procedure validated:\", validation.value);\n    } else {\n      agentResponse = validation.error;\n      validationError = validation.error;\n    }\n  } else if (userInput && userInput.trim()) {\n    // Handle text input for procedure with validation\n    const validation = validationUtils.validateProcedure(userInput, serviceNames);\n    if (validation.isValid) {\n      currentBookingData.procedure = validation.value;\n      agentResponse = `Great! What insurance do you have? (Note: We do not accept Medicare or Medicaid at this time.)`;\n      \n      // DYNAMIC: Generate insurance buttons from Supabase\n      if (insuranceProviders.length > 0) {\n        suggestedActions = insuranceProviders.map(provider => ({\n          text: provider,\n          action: `insurance_${provider.toLowerCase().replace(/\\s+/g, '_')}`\n        }));\n        suggestedActions.push({ text: \"Other\", action: \"insurance_other\" });\n      } else {\n        // Fallback buttons if no insurance providers found\n        suggestedActions = [\n          { text: \"Aetna\", action: \"insurance_aetna\" },\n          { text: \"Blue Cross Blue Shield\", action: \"insurance_bcbs\" },\n          { text: \"Cigna\", action: \"insurance_cigna\" },\n          { text: \"UnitedHealth\", action: \"insurance_unitedhealth\" },\n          { text: \"Other\", action: \"insurance_other\" }\n        ];\n      }\n      \n      currentBookingState = 'collecting_insurance';\n      console.log(\"🔧 DEBUG - Procedure validated via text:\", validation.value);\n    } else {\n      agentResponse = validation.error;\n      validationError = validation.error;\n    }\n  }\n} else if (currentBookingState === \"collecting_insurance\") {\n  // Step 9: Insurance - validate and move to Step 10: Insurance Verification\n  if (detectedAction && detectedAction.startsWith('insurance_')) {\n    const insurance = detectedAction.replace('insurance_', '').replace(/_/g, ' ');\n    const validation = validationUtils.validateInsurance(insurance, insuranceProviders);\n    if (validation.isValid) {\n      currentBookingData.insurance = validation.value;\n      agentResponse = `Perfect! For insurance verification, I need a few more details. What's the Policy Holder's First Name and Last Name?`;\n      currentBookingState = 'collecting_policy_holder';\n      console.log(\"🔧 DEBUG - Insurance validated:\", validation.value);\n    } else {\n      agentResponse = validation.error;\n      validationError = validation.error;\n    }\n  } else if (userInput && userInput.trim()) {\n    // Handle text input for insurance with validation\n    const validation = validationUtils.validateInsurance(userInput, insuranceProviders);\n    if (validation.isValid) {\n      currentBookingData.insurance = validation.value;\n      agentResponse = `Perfect! For insurance verification, I need a few more details. What's the Policy Holder's First Name and Last Name?`;\n      currentBookingState = 'collecting_policy_holder';\n      console.log(\"🔧 DEBUG - Insurance validated via text:\", validation.value);\n    } else {\n      agentResponse = validation.error;\n      validationError = validation.error;\n    }\n  }\n} else if (currentBookingState === \"collecting_policy_holder\") {\n  // Step 10a: Policy Holder Name - validate and move to Step 10b: Insurance ID\n  if (userInput && userInput.trim()) {\n    const validation = validationUtils.validatePolicyHolder(userInput);\n    if (validation.isValid) {\n      currentBookingData.policyHolder = validation.value;\n      // Show the corrected name in the response to replace the user's message\n      agentResponse = `Thank you! I have ${validation.value} as the Policy Holder. What's your Insurance ID Number?`;\n      currentBookingState = 'collecting_insurance_id';\n      console.log(\"🔧 DEBUG - Policy holder validated:\", validation.value);\n    } else {\n      agentResponse = validation.error;\n      validationError = validation.error;\n    }\n  }\n} else if (currentBookingState === \"collecting_insurance_id\") {\n  // Step 10b: Insurance ID - validate and move to Step 10c: Group Number\n  if (userInput && userInput.trim()) {\n    const validation = validationUtils.validateInsuranceId(userInput);\n    if (validation.isValid) {\n      currentBookingData.insuranceId = validation.value;\n      agentResponse = `Great! What's your Group Number?`;\n      currentBookingState = 'collecting_group_number';\n      console.log(\"🔧 DEBUG - Insurance ID validated:\", validation.value);\n    } else {\n      agentResponse = validation.error;\n      validationError = validation.error;\n    }\n  }\n} else if (currentBookingState === \"collecting_group_number\") {\n  // Step 10c: Group Number - validate and move to Step 11: Additional Info\n  if (userInput && userInput.trim()) {\n    const validation = validationUtils.validateGroupNumber(userInput);\n    if (validation.isValid) {\n      currentBookingData.groupNumber = validation.value;\n      agentResponse = `Perfect! Is there any additional information you'd like to share with us? This could include any specific concerns, questions, or details that might help us better prepare for your visit.`;\n      currentBookingState = 'collecting_additional_info';\n      console.log(\"🔧 DEBUG - Group number validated:\", validation.value);\n    } else {\n      agentResponse = validation.error;\n      validationError = validation.error;\n    }\n  }\n} else if (currentBookingState === \"collecting_additional_info\") {\n  // Step 11: Additional Info - validate and move to Summary\n  if (userInput && userInput.trim()) {\n    // Check if user said \"No\" to additional info\n    if (userInput.toLowerCase().includes('no')) {\n      // User said \"No\" to additional info - show summary immediately\n      currentBookingData.additionalInfo = \"None provided\";\n      \n      // CRITICAL FIX: Generate proper summary with all collected data\n      const fullName = currentBookingData.firstName && currentBookingData.lastName ? \n        `${currentBookingData.firstName} ${currentBookingData.lastName}` : \n        (currentBookingData.firstName || currentBookingData.lastName || 'Not provided');\n      \n      const summary = `Here's what I have for you:\\n\\nPatient Information:\\n• First Name: ${currentBookingData.firstName || 'Not provided'}\\n• Last Name: ${currentBookingData.lastName || 'Not provided'}\\n• Full Name: ${fullName}\\n• Date of Birth: ${currentBookingData.dateOfBirth || 'Not provided'}\\n• Phone: ${currentBookingData.phone || 'Not provided'}\\n• Email: ${currentBookingData.email || 'Not provided'}\\n\\nAppointment Details:\\n• Preferred Location: ${currentBookingData.location || 'Not provided'}\\n• Pain Level: ${currentBookingData.painLevel || 'Not provided'}\\n• Symptoms: ${currentBookingData.symptoms || 'Not provided'}\\n• Procedure: ${currentBookingData.procedure || 'Not provided'}\\n\\nInsurance Information:\\n• Insurance: ${currentBookingData.insurance || 'Not provided'}\\n• Policy Holder: ${currentBookingData.policyHolder || 'Not provided'}\\n• Insurance ID: ${currentBookingData.insuranceId || 'Not provided'}\\n• Group Number: ${currentBookingData.groupNumber || 'Not provided'}\\n\\nAdditional Information:\\n• ${currentBookingData.additionalInfo || 'None provided'}\\n\\nIs this information correct? Would you like to schedule your appointment now?`;\n\n      agentResponse = summary;\n      suggestedActions = [\n        { text: \"Yes, Schedule Appointment\", action: \"confirm_appointment\" },\n        { text: \"No, Let me correct something\", action: \"correct_info\" }\n      ];\n      currentBookingState = 'confirmation';\n      console.log(\"🔧 DEBUG - User said No to additional info, showing summary immediately\");\n    } else {\n      // User provided additional info - validate it\n      const validation = validationUtils.validateAdditionalInfo(userInput);\n      if (validation.isValid) {\n        currentBookingData.additionalInfo = validation.value;\n        agentResponse = `Thank you for providing all this information! Let me summarize what we have and then we can schedule your appointment.`;\n        currentBookingState = 'summary';\n        console.log(\"🔧 DEBUG - Additional info validated:\", validation.value);\n      } else {\n        agentResponse = validation.error;\n        validationError = validation.error;\n      }\n    }\n  } else {\n    // User didn't provide additional info, move to summary anyway\n    agentResponse = `Thank you! Let me summarize what we have and then we can schedule your appointment.`;\n    currentBookingState = 'summary';\n  }\n} else if (currentBookingState === \"summary\") {\n  // CRITICAL FIX: Show summary and confirm with ALL collected data\n  const fullName = currentBookingData.firstName && currentBookingData.lastName ? \n    `${currentBookingData.firstName} ${currentBookingData.lastName}` : \n    (currentBookingData.firstName || currentBookingData.lastName || 'Not provided');\n  \n  const summary = `Here's what I have for you:\\n\\nPatient Information:\\n• First Name: ${currentBookingData.firstName || 'Not provided'}\\n• Last Name: ${currentBookingData.lastName || 'Not provided'}\\n• Full Name: ${fullName}\\n• Date of Birth: ${currentBookingData.dateOfBirth || 'Not provided'}\\n• Phone: ${currentBookingData.phone || 'Not provided'}\\n• Email: ${currentBookingData.email || 'Not provided'}\\n\\nAppointment Details:\\n• Preferred Location: ${currentBookingData.location || 'Not provided'}\\n• Pain Level: ${currentBookingData.painLevel || 'Not provided'}\\n• Symptoms: ${currentBookingData.symptoms || 'Not provided'}\\n• Procedure: ${currentBookingData.procedure || 'Not provided'}\\n\\nInsurance Information:\\n• Insurance: ${currentBookingData.insurance || 'Not provided'}\\n• Policy Holder: ${currentBookingData.policyHolder || 'Not provided'}\\n• Insurance ID: ${currentBookingData.insuranceId || 'Not provided'}\\n• Group Number: ${currentBookingData.groupNumber || 'Not provided'}\\n\\nAdditional Information:\\n• ${currentBookingData.additionalInfo || 'None provided'}\\n\\nIs this information correct? Would you like to schedule your appointment now?`;\n\n  agentResponse = summary;\n  suggestedActions = [\n    { text: \"Yes, Schedule Appointment\", action: \"confirm_appointment\" },\n    { text: \"No, Let me correct something\", action: \"correct_info\" }\n  ];\n  currentBookingState = 'confirmation';\n  console.log(\"🔧 DEBUG - Showing summary with all collected data\");\n  console.log(\"🔧 DEBUG - Current booking data:\", currentBookingData);\n} else {\n  // Default response for other states\n  agentResponse = `I'm here to help you with your appointment. Could you please let me know what specific information you need?`;\n}\n\nconsole.log(\"🔧 DEBUG - Final booking state:\", currentBookingState);\nconsole.log(\"🔧 DEBUG - Final booking data:\", currentBookingData);\nif (validationError) {\n  console.log(\"🔧 DEBUG - Validation error:\", validationError);\n}\n\n// Determine corrected user input based on current state\nlet correctedUserInput = null;\nif (currentBookingState === 'collecting_name' && currentBookingData.fullName) {\n  correctedUserInput = currentBookingData.fullName;\n} else if (currentBookingState === 'collecting_policy_holder' && currentBookingData.policyHolder) {\n  correctedUserInput = currentBookingData.policyHolder;\n}\n\n// FIXED: Return only ONE item to prevent duplicates\nreturn [{\n  json: {\n    agent_response: agentResponse,\n    suggestedActions: suggestedActions,\n    bookingState: currentBookingState,\n    bookingData: JSON.stringify(currentBookingData),\n    demoId: demoId,\n    companyName: companyName,\n    agentName: agentName,\n    showPersistentButtons: false,\n    validationError: validationError,\n    correctedUserInput: correctedUserInput, // Dynamic corrected user input\n    debug_info: {\n      currentState: currentBookingState,\n      userInput: userInput,\n      userAction: detectedAction,\n      hasButtons: suggestedActions.length > 0,\n      llmUsed: false,\n      websiteDataUsed: false,\n      authSitesUsed: false,\n      showPersistentButtons: false,\n      validationError: validationError,\n      serviceNames: serviceNames,\n      insuranceProviders: insuranceProviders\n    }\n  },\n  pairedItem: 0\n}]; "
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1280,
+        100
+      ],
+      "id": "00f9e167-e745-47cb-a450-08210d11dae9",
+      "name": "BookingAgent"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "7bc6f9e8-3845-4c80-a73a-f17d89701f4b",
+              "leftValue": "={{$json[\"nextAgent\"]}}",
+              "rightValue": "BookingAgent",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1680,
+        120
+      ],
+      "id": "72cf8c61-b3d3-4398-9e60-4b3e3dab8b05",
+      "name": "BookingAgent Branch"
+    },
+    {
+      "parameters": {
+        "jsCode": "// SIMPLIFIED FIX: Build Booking Prompt Node\n// Handles everything without relying on Restore Buttons After LLM node\n\nconsole.log(\"🚀 SIMPLIFIED: Generating LLM prompt with direct button handling\");\n\nconst agentName = $json.agentName || \"Olivia\";\nconst companyName = $json.companyName || \"Hassan Spine & Sports Medicine\";\nlet bookingState = $json.bookingState || \"initial\";\nconst parsedBookingData = $json.bookingData || {};\nlet detectedAction = $json.userAction || \"\";\nconst userInput = $json.message || $json.user_message || \"\";\n\n// CRITICAL FIX: Detect if user provided their name and advance state\nif (bookingState === \"collecting_name\" && userInput && userInput.trim()) {\n  // Check if user input looks like a name (has at least 2 words)\n  const nameParts = userInput.trim().split(' ').filter(part => part.length > 0);\n  if (nameParts.length >= 2) {\n    bookingState = \"collecting_dob\";\n    console.log(\"🚀 STATE ADVANCED: User provided name, advancing to collecting_dob\");\n  }\n}\n\n// CRITICAL FIX: Only show buttons in initial state, clear them for all other states\nlet suggestedActions = [];\n\n// Only generate buttons if we're in the initial state\nif (bookingState === \"initial\" || bookingState === \"patient_type\") {\n  console.log(\"🚀 GENERATING BUTTONS: New Patient/Existing Patient buttons for initial state\");\n  suggestedActions = [\n    { text: \"New Patient\", action: \"new_patient\" },\n    { text: \"Existing Patient\", action: \"existing_patient\" }\n  ];\n} else {\n  console.log(\"🚀 NO BUTTONS: Advanced past initial state, clearing buttons\");\n  suggestedActions = []; // No buttons for any other state\n}\n\nconsole.log(\"🚀 BUTTONS DEBUG: suggestedActions:\", suggestedActions);\nconsole.log(\"🚀 STATE DEBUG: bookingState:\", bookingState, \"userInput:\", userInput);\n\n// Build the conversation history\nconst userMessage = $json.message || $json.user_message || \"\";\n\n// DETERMINE THE EXACT RESPONSE BASED ON STATE\nlet exactResponse = \"\";\n\nif (bookingState === \"initial\" || bookingState === \"patient_type\") {\n  exactResponse = `Hi there! I'm ${agentName}, and I'm here to help you get the care you need at ${companyName}. I understand this might be a difficult time for you, and I want to make this process as gentle and smooth as possible. To get started, could you please let me know if you're a:`;\n} else if (detectedAction === \"new_patient\" || detectedAction === \"existing_patient\" || bookingState === \"collecting_name\") {\n  const patientType = detectedAction === \"new_patient\" ? \"new\" : \"existing\";\n  exactResponse = `Thank you so much for letting me know you're a ${patientType} patient. I'm here to make this as easy as possible for you. Could you please share your <span style=\"font-weight: bold; color: orange;\">First Name and Last Name</span> with me?`;\n} else if (bookingState === \"collecting_dob\") {\n  const firstName = parsedBookingData.firstName || \"there\";\n  const lastName = parsedBookingData.lastName || \"\";\n  const fullName = lastName ? `${firstName} ${lastName}` : firstName;\n  exactResponse = `Thank you ${firstName}! I have ${fullName} as your name. Could you please share your <span style=\"font-weight: bold; color: orange;\">Date of Birth</span>? (Example: 01/15/1985)`;\n} else if (bookingState === \"collecting_phone\") {\n  exactResponse = `Perfect! Now could you please share your <span style=\"font-weight: bold; color: orange;\">Phone Number</span>? This helps us reach you if we need to confirm anything about your appointment. (Example: +15031234567)`;\n} else if (bookingState === \"collecting_email\") {\n  exactResponse = `Great! And could you please share your <span style=\"font-weight: bold; color: orange;\">Email Address</span>?`;\n} else if (bookingState === \"collecting_location\") {\n  exactResponse = `Excellent! Which of our locations would be most convenient for you? We want to make sure you can get to us easily.`;\n} else if (bookingState === \"collecting_pain_level\") {\n  const location = parsedBookingData.location || \"your preferred location\";\n  exactResponse = `Perfect! ${location} is a great choice. Now, I understand this might be difficult to talk about, but it helps us understand your situation better so we can get you the right care. On a scale of 1 to 10, how would you rate your pain level right now?`;\n} else if (bookingState === \"collecting_symptoms\") {\n  exactResponse = `Thank you for sharing that with me. Could you please describe your symptoms? This helps us understand what you're experiencing.`;\n} else if (bookingState === \"collecting_procedure\") {\n  exactResponse = `Thank you for sharing your symptoms. What procedure or treatment are you interested in?`;\n} else if (bookingState === \"collecting_insurance\") {\n  exactResponse = `Great! What insurance do you have? (Note: We do not accept Medicare or Medicaid at this time.)`;\n} else {\n  // Default response for other states\n  exactResponse = `I'm here to help you with your appointment. Could you please let me know what specific information you need?`;\n}\n\n// SIMPLIFIED PROMPT: Just tell the LLM to use the exact response\nconst finalPrompt = `\nYou are ${agentName}, a caring healthcare assistant at ${companyName}.\n\nEXACT RESPONSE TO USE: \"${exactResponse}\"\n\nRespond with exactly this text and nothing else.\n\nPatient: ${userMessage}\n${agentName}:\n`;\n\n// Return prompt for LLM processing with correct buttons\nreturn [{\n  json: {\n    ...$json,\n    prompt: finalPrompt,\n    userMessage,\n    bookingState, // CRITICAL: Pass the updated booking state\n    bookingData: parsedBookingData,\n    userAction: detectedAction,\n    skipLLM: false, // ALWAYS allow LLM processing\n    suggestedActions // CRITICAL: Only buttons for initial state\n  },\n  pairedItem: {\n    item: 0\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1100,
+        100
+      ],
+      "id": "d2d1b202-f7ab-4b78-8779-ae130c5df34e",
+      "name": "Build Booking Prompt"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Robust Google Calendar Fix\n// Only create calendar data when booking is actually completed\n\nreturn items.map((item, i) => {\n  console.log('=== ROBUST GOOGLE CALENDAR FIX ===');\n  console.log('Booking state:', item.json.bookingState);\n  console.log('User input:', item.json.message || item.json.userMessage || '');\n  \n  // Check if booking is actually completed\n  const isBookingCompleted = item.json.bookingState === 'submitted' || item.json.bookingState === 'completed';\n  const hasRealPatientData = item.json.bookingData && item.json.bookingData.fullName && item.json.bookingData.email;\n  \n  console.log('Is booking completed:', isBookingCompleted);\n  console.log('Has real patient data:', hasRealPatientData);\n  \n  if (isBookingCompleted && hasRealPatientData) {\n    console.log('✅ Booking completed - create calendar data');\n    \n    // PART 1: Clean LLM Response - Remove Instruction Text\n    let response = item.json.agent_response || item.json.text || \"\";\n    \n    // Remove any instruction text in brackets []\n    response = response.replace(/\\[.*?\\]/g, '').trim();\n    \n    // Remove any remaining instruction text patterns\n    response = response.replace(/(Please provide.*?)/g, '').trim();\n    response = response.replace(/(Show.*?)/g, '').trim();\n    response = response.replace(/(.*?buttons.*?)/g, '').trim();\n    \n    // Clean up any double spaces\n    response = response.replace(/\\s+/g, ' ').trim();\n    \n    // PART 2: Extract Date and Time (only for completed bookings)\n    let selected_slot = item.json.selected_slot;\n    let selected_slot_end = null;\n\n    if (selected_slot) {\n      const start = new Date(selected_slot);\n      if (!isNaN(start.getTime())) {\n        const end = new Date(start.getTime() + 30 * 60000); // 30 minutes later\n        selected_slot_end = end.toISOString();\n      }\n    }\n\n    return {\n      json: {\n        ...item.json,\n        agent_response: response,  // Cleaned response\n        selected_slot_end,        // Extracted date/time\n        proceedToGoogleCalendar: true\n      },\n      pairedItem: i\n    };\n  } else {\n    console.log('⏭️ Booking not completed - skip calendar data creation');\n    \n    // PART 1: Clean LLM Response - Remove Instruction Text\n    let response = item.json.agent_response || item.json.text || \"\";\n    \n    // Remove any instruction text in brackets []\n    response = response.replace(/\\[.*?\\]/g, '').trim();\n    \n    // Remove any remaining instruction text patterns\n    response = response.replace(/(Please provide.*?)/g, '').trim();\n    response = response.replace(/(Show.*?)/g, '').trim();\n    response = response.replace(/(.*?buttons.*?)/g, '').trim();\n    \n    // Clean up any double spaces\n    response = response.replace(/\\s+/g, ' ').trim();\n    \n    // Skip calendar data creation for incomplete bookings\n    return {\n      json: {\n        ...item.json,\n        agent_response: response,  // Cleaned response\n        selected_slot: null,       // No calendar data\n        selected_slot_end: null,   // No calendar data\n        proceedToGoogleCalendar: false\n      },\n      pairedItem: i\n    };\n  }\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -260,
+        100
+      ],
+      "id": "fbcfbc51-1410-45b9-85e9-76ec81f33fd7",
+      "name": "Format Booking Response"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Robust Google Calendar Fix\n// Only create calendar data when booking is actually completed\n\nreturn items.map((item, i) => {\n  console.log('=== ROBUST GOOGLE CALENDAR FIX ===');\n  console.log('Booking state:', item.json.bookingState);\n  console.log('User input:', item.json.message || item.json.userMessage || '');\n  \n  // Check if booking is actually completed\n  const isBookingCompleted = item.json.bookingState === 'submitted' || item.json.bookingState === 'completed';\n  const hasRealPatientData = item.json.bookingData && item.json.bookingData.fullName && item.json.bookingData.email;\n  \n  console.log('Is booking completed:', isBookingCompleted);\n  console.log('Has real patient data:', hasRealPatientData);\n  \n  if (isBookingCompleted && hasRealPatientData) {\n    console.log('✅ Booking completed - create calendar data');\n    \n    // PART 1: Clean LLM Response - Remove Instruction Text\n    let response = item.json.agent_response || item.json.text || \"\";\n    \n    // Remove any instruction text in brackets []\n    response = response.replace(/\\[.*?\\]/g, '').trim();\n    \n    // Remove any remaining instruction text patterns\n    response = response.replace(/\\(Please provide.*?\\)/g, '').trim();\n    response = response.replace(/\\(Show.*?\\)/g, '').trim();\n    response = response.replace(/\\(.*?buttons.*?\\)/g, '').trim();\n    \n    // Clean up any double spaces\n    response = response.replace(/\\s+/g, ' ').trim();\n    \n    // PART 2: Extract Date and Time (only for completed bookings)\n    let selected_slot = item.json.selected_slot;\n    let selected_slot_end = null;\n\n    if (selected_slot) {\n      const start = new Date(selected_slot);\n      if (!isNaN(start.getTime())) {\n        const end = new Date(start.getTime() + 30 * 60000); // 30 minutes later\n        selected_slot_end = end.toISOString();\n      }\n    }\n\n    return {\n      json: {\n        ...item.json,\n        agent_response: response,  // Cleaned response\n        selected_slot_end,        // Extracted date/time\n        proceedToGoogleCalendar: true\n      },\n      pairedItem: i\n    };\n  } else {\n    console.log('⏭️ Booking not completed - skip calendar data creation');\n    \n    // PART 1: Clean LLM Response - Remove Instruction Text\n    let response = item.json.agent_response || item.json.text || \"\";\n    \n    // Remove any instruction text in brackets []\n    response = response.replace(/\\[.*?\\]/g, '').trim();\n    \n    // Remove any remaining instruction text patterns\n    response = response.replace(/\\(Please provide.*?\\)/g, '').trim();\n    response = response.replace(/\\(Show.*?\\)/g, '').trim();\n    response = response.replace(/\\(.*?buttons.*?\\)/g, '').trim();\n    \n    // Clean up any double spaces\n    response = response.replace(/\\s+/g, ' ').trim();\n    \n    // Skip calendar data creation for incomplete bookings\n    return {\n      json: {\n        ...item.json,\n        agent_response: response,  // Cleaned response\n        selected_slot: null,       // No calendar data\n        selected_slot_end: null,   // No calendar data\n        proceedToGoogleCalendar: false\n      },\n      pairedItem: i\n    };\n  }\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -60,
+        100
+      ],
+      "id": "dbc5f144-89af-48e5-ad00-b9f9390aaa2b",
+      "name": "Extract Date & Time"
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "mmont5@gmail.com",
+          "mode": "list",
+          "cachedResultName": "mmont5@gmail.com"
+        },
+        "start": "={{$json.selected_slot}}",
+        "end": "={{$json.end_slot}}",
+        "additionalFields": {
+          "attendees": [],
+          "description": "=Patient Name: {{$json.first_name}} {{$json.last_name}}\nEmail: {{$json.contact_email}}\nPhone: {{$json.contact_phone}}\nLocation: {{$json.location}}\nPain Level: {{$json.pain_level}}\nSymptoms: {{$json.symptoms}}\nProcedure: {{$json.procedure}}\nInsurance: {{$json.insurance_provider}}\nNotes: {{$json.notes}}",
+          "summary": "=Appointment: {{$json.patient_name}}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        520,
+        -40
+      ],
+      "id": "920be9b1-6128-425f-b206-1512077f1baf",
+      "name": "Create Booking Calendar Event",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "IAWQnZQhywicQnih",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{$json}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.2,
+      "position": [
+        720,
+        160
+      ],
+      "id": "7c593aa1-790c-4bc3-b62e-e11a5e035cc0",
+      "name": "Respond to Webhook - Booking Branch"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Fix Suggested Actions Buttons AND Preserve Booking State\n// This goes in the Code node in the FALSE branch of the IF node\n\nreturn items.map((item, i) => {\n  console.log('=== FIX SUGGESTED ACTIONS BUTTONS ===');\n  console.log('Original agent_response:', item.json.agent_response);\n  console.log('Original suggestedActions:', JSON.stringify(item.json.suggestedActions, null, 2));\n  console.log('Booking state:', item.json.bookingState);\n  console.log('Services available:', item.json.services);\n  \n  // Ensure suggestedActions are properly formatted\n  let suggestedActions = item.json.suggestedActions || [];\n  \n  // If we're at the procedure step and no buttons are present, create them from services\n  if (item.json.bookingState === 'procedure' && suggestedActions.length === 0 && item.json.services) {\n    console.log('✅ Creating procedure buttons from services');\n    suggestedActions = item.json.services.map(service => {\n      // Ensure service is a string\n      const serviceText = typeof service === 'string' ? service : String(service);\n      return {\n        text: serviceText,\n        action: `procedure_${serviceText.replace(/\\s+/g, '_')}`\n      };\n    });\n  }\n  \n  console.log('Final suggestedActions:', JSON.stringify(suggestedActions, null, 2));\n  \n  // CRITICAL FIX: Ensure booking state is properly formatted for webhook response\n  const bookingState = item.json.bookingState || \"\";\n  const bookingData = typeof item.json.bookingData === 'string' ? item.json.bookingData : JSON.stringify(item.json.bookingData || {});\n  \n  console.log('Final booking state for webhook:', bookingState);\n  console.log('Final booking data for webhook:', bookingData);\n  \n  // Preserve the original response with proper buttons AND booking state\n  return {\n    json: {\n      agent_response: item.json.agent_response,\n      suggestedActions: suggestedActions,\n      bookingState: bookingState,\n      bookingData: bookingData,\n      // Preserve all original data to maintain booking flow\n      message: item.json.message,\n      userMessage: item.json.userMessage,\n      services: item.json.services,\n      // Add a flag to indicate this came from the FALSE branch\n      fromFalseBranch: true,\n      // Preserve any other important fields\n      demoId: item.json.demoId,\n      companyName: item.json.companyName,\n      agentName: item.json.agentName\n    },\n    pairedItem: i\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        520,
+        160
+      ],
+      "id": "138fdbe9-be34-4d98-a3be-cbe29784b0ee",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://llm-server-llm-server-1:8200/v1/completions",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "max_tokens",
+              "value": "={{ $json.max_tokens }}"
+            },
+            {
+              "name": "temperature",
+              "value": "={{ $json.temperature }}"
+            },
+            {
+              "name": "generic_mode",
+              "value": "={{ $json.generic_mode }}"
+            },
+            {
+              "name": "prompt",
+              "value": "={{ $json.prompt }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -720,
+        100
+      ],
+      "id": "0ddeadf8-ea51-4484-921d-0c33e01886f9",
+      "name": "Call LLM for BookingAgent"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map((item, i) => ({\n  json: {\n    ...item.json\n  },\n  pairedItem: i\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4740,
+        360
+      ],
+      "id": "f4166954-45ea-4adb-ac9d-39328966a1c3",
+      "name": "Debug"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map((item, i) => ({\n  json: {\n    ...item.json\n  },\n  pairedItem: i\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4040,
+        220
+      ],
+      "id": "4424165d-ddf2-4912-b3aa-c315ceaa770f",
+      "name": "Debug1"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map((item, i) => ({\n  json: {\n    ...item.json\n  },\n  pairedItem: i\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3600,
+        340
+      ],
+      "id": "db04beec-eee2-4b71-961c-8f197d635867",
+      "name": "Debug2"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map((item, i) => ({\n  json: {\n    ...item.json\n  },\n  pairedItem: i\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3240,
+        340
+      ],
+      "id": "39daee32-60f0-4d44-9b0e-dc92fcd8bc13",
+      "name": "Debug3"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nfor (const item of $input.all()) {\n  item.json.myNewField = 1;\n}\n\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3000,
+        580
+      ],
+      "id": "c3284d47-36a1-4ea8-bdf6-399a4028c94a",
+      "name": "Debug4"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map((item, i) => ({\n  json: {\n    ...item.json\n  },\n  pairedItem: i\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2620,
+        580
+      ],
+      "id": "97437cc6-f527-42e6-ac50-6f190a4804b4",
+      "name": "Debug5"
+    },
+    {
+      "parameters": {
+        "jsCode": "// RhythmAgent Parameter Mapping Fix\n// This maps the data to the exact parameter structure that RhythmAgent expects\n\nreturn items.map((item, i) => {\n  const inputData = item.json;\n  \n  // Extract the required fields\n  const patientId = inputData.patientId || `patient_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;\n  const scheduledTime = inputData.scheduledTime || new Date().toISOString();\n  const channels = inputData.channels || ['sms', 'email'];\n  \n  // Extract patient information\n  const patientName = inputData.patientName || 'Unknown Patient';\n  const email = inputData.email || '';\n  const phone = inputData.phone || '';\n  const location = inputData.location || '';\n  const painLevel = inputData.painLevel || '';\n  const symptoms = inputData.symptoms || '';\n  const procedure = inputData.procedure || '';\n  const insurance = inputData.insurance || '';\n  const notes = inputData.notes || '';\n  \n  // Create the message content\n  const message = `Appointment Reminder for ${patientName}\n\nPatient Details:\n- Name: ${patientName}\n- Phone: ${phone}\n- Email: ${email}\n- Location: ${location}\n- Pain Level: ${painLevel}/10\n- Symptoms: ${symptoms}\n- Procedure: ${procedure}\n- Insurance: ${insurance}\n- Notes: ${notes}\n\nYour appointment is scheduled for ${new Date(scheduledTime).toLocaleString()}.\n\nPlease contact us if you need to reschedule.`;\n\n  // Return the data in the exact format RhythmAgent expects for its parameters\n  return {\n    json: {\n      // RhythmAgent Parameter Mapping\n      operation: 'schedule',\n      patientId: patientId,\n      appointmentId: inputData.calendarEventId || '',\n      reminderType: 'appointment',\n      scheduledTime: scheduledTime,\n      notificationChannels: channels.join(','), // Convert array to comma-separated string\n      priority: 'medium',\n      message: message,\n      repeatFrequency: 'once',\n      repeatInterval: '1',\n      endDate: '', // Leave empty for single reminder\n      \n      // Additional context\n      agent: 'RhythmAgent',\n      timestamp: new Date().toISOString(),\n      \n      // Keep original data for reference\n      originalData: inputData\n    },\n    pairedItem: i\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        -40
+      ],
+      "id": "d0bdd5fc-58fb-4c8c-b8c8-ba771b926339",
+      "name": "Fix RhythmAgent Data"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "5b48fb05-eadb-44bd-bf8c-6224f43b7b69",
+              "leftValue": "=true",
+              "rightValue": "=($json.bookingState === 'submitted' || $json.bookingState === 'completed') &&\n($json.bookingData && $json.bookingData.fullName && $json.bookingData.email) &&\n($json.selected_slot && $json.end_slot) &&\n!($json.bookingState === 'initial' || $json.bookingState === 'patient_type')",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        180,
+        100
+      ],
+      "id": "336641a7-b6f8-485b-ab3b-1739a6739fd7",
+      "name": "Google Calendar Condition"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b485234c-223c-40b6-8331-fa76cd4450b9",
+              "leftValue": "={{$json[\"nextAgent\"]}}",
+              "rightValue": "HumanAgent",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1640,
+        580
+      ],
+      "id": "9d6be738-9e47-43cd-95a0-9faf31b0352f",
+      "name": "HumanAgent Branch"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "6bb566d1-9fcb-4877-97fb-6561be5edad1",
+              "leftValue": "={{$json[\"nextAgent\"]}}",
+              "rightValue": "HarmonyAgent",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1640,
+        980
+      ],
+      "id": "1b3c8480-1518-4d15-9ee9-27b93e2b2a27",
+      "name": "HarmonyAgent Branch"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "8fd87792-edac-4d62-86a0-70cf053fb219",
+              "leftValue": "={{$json[\"nextAgent\"]}}",
+              "rightValue": "VirtuosoAgent",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1640,
+        1160
+      ],
+      "id": "2e6a0314-8055-4775-8e91-6a4c8ca86b17",
+      "name": "VirtuosoAgent Branch"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "46b3d09b-9798-4f6b-beed-ecf4d44e532f",
+              "leftValue": "={{$json[\"nextAgent\"]}}",
+              "rightValue": "ComposerAgent",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1640,
+        1360
+      ],
+      "id": "8fa22a10-f9c4-4d20-8ba3-655865580e21",
+      "name": "ComposerAgent Branch"
+    },
+    {
+      "parameters": {
+        "jsCode": "// CRITICAL FIX: Enhanced Build Prompt for MedleyAgent with complete business context\n\n// 1. Robust user message extraction (try all possible locations)\nlet userMessage = \"\";\n\n// Try all possible locations for the user message\nif ($json.message && typeof $json.message === \"string\" && $json.message.trim() !== \"\") {\n  userMessage = $json.message.trim();\n} else if ($json.body && typeof $json.body.message === \"string\" && $json.body.message.trim() !== \"\") {\n  userMessage = $json.body.message.trim();\n} else if ($json.user_message && typeof $json.user_message === \"string\" && $json.user_message.trim() !== \"\") {\n  userMessage = $json.user_message.trim();\n} else if ($json.userMessage && typeof $json.userMessage === \"string\" && $json.userMessage.trim() !== \"\") {\n  userMessage = $json.userMessage.trim();\n} else if ($json.input && typeof $json.input.message === \"string\" && $json.input.message.trim() !== \"\") {\n  userMessage = $json.input.message.trim();\n}\n\n// If still empty, set a debug message\nif (!userMessage) {\n  userMessage = \"[NO USER MESSAGE FOUND]\";\n}\n\n// CRITICAL FIX: Extract complete business context from original_context structure\nconst demoData = $json.original_context?.demoData || $json;\nconst webhookData = $json.original_context?.webhookData || {};\nconst fullContext = $json.original_context?.fullContext || {};\n\n// CRITICAL FIX: Extract enhanced context with fallbacks\nconst industry = demoData.industry || $json.industry || \"healthcare\";\nconst companyName = demoData.company_name || $json.company_name || \"Hassan Spine & Sports Medicine\";\nconst agentName = demoData.agent_name || $json.agent_name || \"Olivia\";\nconst category = demoData.category || $json.category || \"Pain Management, Sports Medicine\";\n\n// CRITICAL FIX: Extract services and specialists for clinical context\nconst services = demoData.services || [\n  'Spine Surgery', 'Non-Surgical', 'Podiatry', 'Orthopedics', 'Spinal Conditions',\n  'Knee Injury', 'Shoulder Injury', 'Arthritis', 'Joint Pain', 'PRP Therapy',\n  'Radiofrequency Ablation', 'Spinal Cord Stimulation', 'Pain Relief', 'Sports Injury', 'Sports Medicine'\n];\n\nconst specialists = demoData.specialists || [];\nconst locations = demoData.locations || [];\nconst contact = demoData.contact || {\n  phone: demoData.company_phone || \"(732) 759-8110\",\n  email: demoData.company_email || \"info@hassanspine.com\"\n};\n\n// 3. Enhanced symptom extraction with Dr. Hassan's specialties\nconst BODY_PARTS = [\n  'back', 'neck', 'shoulder', 'knee', 'hip', 'foot', 'ankle', 'wrist', 'elbow', 'leg', 'arm', 'hand', 'spine', 'joint', 'muscle', 'head', 'headache',\n  'spine', 'spinal', 'lumbar', 'cervical', 'thoracic', 'disc', 'herniated', 'bulging', 'sciatica'\n];\nconst SYMPTOMS = [\n  'pain', 'ache', 'soreness', 'stiffness', 'discomfort', 'tightness', 'injury', 'hurt', 'numbness', 'weakness', 'tingling', 'swelling', 'cramp', 'spasm', 'burning', 'throbbing', 'tenderness', 'fatigue', 'trouble', 'bothering', 'uncomfortable', 'symptom', 'issue', 'problem',\n  'radiating', 'shooting', 'sharp', 'dull', 'chronic', 'acute', 'intermittent', 'constant'\n];\n\nfunction extractSymptomsAndBodyParts(input) {\n  const lower = input.toLowerCase();\n  const foundParts = BODY_PARTS.filter(part => lower.includes(part));\n  const foundSymptoms = SYMPTOMS.filter(sym => lower.includes(sym));\n  let phrase = '';\n  if (foundParts.length > 0 && foundSymptoms.length > 0) {\n    phrase = `${foundParts.join(' and ')} ${foundSymptoms[0]}`;\n  } else if (foundParts.length > 0) {\n    phrase = foundParts.join(' and ');\n  } else if (foundSymptoms.length > 0) {\n    phrase = foundSymptoms[0];\n  }\n  return phrase || '';\n}\n\nconst extractedSymptoms = extractSymptomsAndBodyParts(userMessage);\n\n// CRITICAL FIX: Build comprehensive clinical context\nconst clinicalContext = `\nPractice Information:\n- Practice: ${companyName}\n- Specialties: ${category}\n- Services: ${services.join(', ')}\n- Contact: ${contact.phone} | ${contact.email}\n- Locations: ${locations.map(loc => loc.city).join(', ')}\n- Specialists: ${specialists.map(spec => spec.name).join(', ')}\n`;\n\n// 4. Build the enhanced LLM prompt with complete business context\nconst prompt = `\nYou are ${agentName}, a compassionate healthcare assistant at ${companyName} specializing in ${category}.\n\n${clinicalContext}\n\nA patient says: \"${userMessage}\"\n\nIMPORTANT INSTRUCTIONS:\n1. Respond as a real human healthcare assistant - never mention being AI or automated\n2. Show genuine empathy and understanding for the patient's situation\n3. Use natural, conversational language\n4. Provide specific, actionable information based on our specialties\n5. Acknowledge their concern with real compassion\n6. Offer relevant next steps and treatment options from our services\n7. Be warm, professional, and genuinely helpful\n8. Address the specific symptoms they mentioned: \"${extractedSymptoms}\"\n9. Reference our specific services and specialists when relevant\n10. Encourage them to book an appointment if appropriate\n\nRespond with empathy, kindness, and specific reference to the patient's concern. Offer support and next steps.\n`;\n\nconst system_prompt = `IMPORTANT: The user specifically mentioned: \"${extractedSymptoms}\". Address this in your response. You are ${agentName} at ${companyName} specializing in ${category}.`;\n\nconsole.log('🔧 DEBUG - MedleyAgent Build Prompt:', {\n  userMessage,\n  companyName,\n  agentName,\n  category,\n  services: services.length,\n  specialists: specialists.length,\n  extractedSymptoms\n});\n\n// 5. Return all fields needed for the HTTP Request node, with correct item linking\nreturn items.map((item, i) => ({\n  json: {\n    ...item.json,\n    prompt,\n    system_prompt,\n    extracted_symptoms: extractedSymptoms,\n    industry,\n    category: category,\n    max_tokens: 512,\n    temperature: 0.7,\n    // CRITICAL FIX: Preserve complete business context\n    demoData,\n    webhookData,\n    fullContext\n  },\n  pairedItem: i // <-- This is critical for n8n item linking!\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1260,
+        360
+      ],
+      "id": "fd97a1b7-9a10-472a-af7a-caadc3c8e865",
+      "name": "Build Prompt"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://llm-server-llm-server-1:8200/v1/completions",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "prompt",
+              "value": "={{$json[\"prompt\"]}}"
+            },
+            {
+              "name": "max_tokens",
+              "value": "={{$json[\"max_tokens\"]}}"
+            },
+            {
+              "name": "temperature",
+              "value": "={{$json[\"temperature\"]}}"
+            },
+            {
+              "name": "industry",
+              "value": "={{$json[\"industry\"]}}"
+            },
+            {
+              "name": "category",
+              "value": "={{$json[\"category\"]}}"
+            },
+            {
+              "name": "system_prompt",
+              "value": "={{$json[\"system_prompt\"]}}"
+            },
+            {
+              "name": "extracted_symptoms",
+              "value": "={{$json[\"extracted_symptoms\"]}}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1080,
+        360
+      ],
+      "id": "d11971c6-5ccd-485e-b8d6-1151cedd0dd2",
+      "name": "Call LLM for MedleyAgent"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "272c0ad0-5811-4e8f-a920-5f1ea2c7dfb5",
+              "leftValue": "={{$json[\"nextAgent\"]}}",
+              "rightValue": "MedleyAgent",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1660,
+        380
+      ],
+      "id": "0baa0549-b3d2-4d7a-a246-48faf01ea6cb",
+      "name": "MedleyAgent Branch"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "48f019e1-cfce-476c-a5fc-6c5b0c143122",
+              "leftValue": "={{$json[\"nextAgent\"]}}",
+              "rightValue": "ScoreAgent",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -1660,
+        780
+      ],
+      "id": "0bf7543a-761d-4074-b69a-147302236901",
+      "name": "ScoreAgent Branch"
+    },
+    {
+      "parameters": {
+        "jsCode": "// CRITICAL: Pass through all important fields, especially suggestedActions (buttons)\nconsole.log(\"🚀 CODE2: Preserving suggestedActions and all other fields\");\n\nreturn [{\n  json: {\n    ...$json,\n    suggestedActions: $json.suggestedActions || [],\n    bookingState: $json.bookingState || \"initial\",\n    bookingData: $json.bookingData || {},\n    userAction: $json.userAction || \"\",\n    prompt: $json.prompt,\n    userMessage: $json.userMessage || $json.message || \"\",\n    skipLLM: $json.skipLLM || false\n  },\n  pairedItem: {\n    item: 0\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -920,
+        100
+      ],
+      "id": "e8907e63-a5dd-462b-b2ef-5ff4fe7aa40a",
+      "name": "Code2"
+    },
+    {
+      "parameters": {},
+      "type": "CUSTOM.medleyAgent",
+      "typeVersion": 1,
+      "position": [
+        -880,
+        360
+      ],
+      "id": "4259f65b-52e3-4e55-abc2-cd03e465c382",
+      "name": "MedleyAgent"
+    },
+    {
+      "parameters": {
+        "jsCode": "// FIXED BUTTON LOGIC: Restore Buttons After LLM Node\n// Only add buttons in initial state, not in subsequent states\n\nconsole.log(\"🚀 FIXED RESTORE: Adding buttons back after LLM with correct logic\");\n\n// Get the LLM response\nconst llmResponse = $json;\n\n// Get the booking state from the current input (if available)\nconst bookingState = $json.bookingState || \"patient_type\";\n\nconsole.log(\"🚀 LLM response:\", llmResponse.text);\nconsole.log(\"🚀 Booking state:\", bookingState);\n\n// CRITICAL FIX: Only generate buttons if we're in the initial state\nlet suggestedActions = [];\n\nif (bookingState === \"initial\" || bookingState === \"patient_type\") {\n  console.log(\"🚀 GENERATING BUTTONS: New Patient/Existing Patient for initial state\");\n  suggestedActions = [\n    { text: \"New Patient\", action: \"new_patient\" },\n    { text: \"Existing Patient\", action: \"existing_patient\" }\n  ];\n} else {\n  console.log(\"🚀 NO BUTTONS: Advanced past initial state, no buttons needed\");\n  suggestedActions = []; // No buttons for any other state\n}\n\nconsole.log(\"🚀 Final suggestedActions:\", suggestedActions);\n\n// Return the response with correct buttons\nreturn [{\n  json: {\n    agent_response: llmResponse.text || llmResponse.agent_response || \"\",\n    suggestedActions: suggestedActions,\n    bookingState: bookingState,\n    // Preserve other important fields\n    demoId: $json.demoId,\n    companyName: $json.companyName,\n    agentName: $json.agentName,\n    // Add debug info\n    debug_info: {\n      buttons_generated: suggestedActions.length > 0,\n      llm_text: llmResponse.text,\n      booking_state: bookingState,\n      button_logic_fixed: true\n    }\n  },\n  pairedItem: {\n    item: 0\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -520,
+        100
+      ],
+      "id": "17342a90-a701-4dbe-a997-ce1504a6fd86",
+      "name": "Restore Buttons After LLM"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Debug",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Initial Processing": {
+      "main": [
+        [
+          {
+            "node": "Format Main Location Address",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Place ID": {
+      "main": [
+        [
+          {
+            "node": "Get Place Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Place Details": {
+      "main": [
+        [
+          {
+            "node": "Merge Google Place Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Update": {
+      "main": [
+        [
+          {
+            "node": "Supabase Patch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Intent Classifier": {
+      "main": [
+        [
+          {
+            "node": "Debug5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Demo Context": {
+      "main": [
+        [
+          {
+            "node": "Debug3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Main Location Address": {
+      "main": [
+        [
+          {
+            "node": "Find Place ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Google Place Data": {
+      "main": [
+        [
+          {
+            "node": "PreludeAgent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pass Context Forward": {
+      "main": [
+        [
+          {
+            "node": "Debug4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MaestroAgent": {
+      "main": [
+        [
+          {
+            "node": "BookingAgent Branch",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "MedleyAgent Branch",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "ScoreAgent Branch",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HarmonyAgent Branch",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "VirtuosoAgent Branch",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "ComposerAgent Branch",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HumanAgent Branch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PreludeAgent": {
+      "main": [
+        [
+          {
+            "node": "Supabase Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "VirtuosoAgent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Patch": {
+      "main": [
+        [
+          {
+            "node": "Pass Context Forward",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chat Trigger": {
+      "main": [
+        [
+          {
+            "node": "Debug1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Debug2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HumanAgent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ScoreAgent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HarmonyAgent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "VirtuosoAgent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ComposerAgent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "Chat Trigger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Prompt": {
+      "main": [
+        [
+          {
+            "node": "Format for Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format for Webhook": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BookingAgent": {
+      "main": [
+        [
+          {
+            "node": "Build Booking Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BookingAgent Branch": {
+      "main": [
+        [
+          {
+            "node": "BookingAgent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Booking Prompt": {
+      "main": [
+        [
+          {
+            "node": "Code2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Booking Response": {
+      "main": [
+        [
+          {
+            "node": "Extract Date & Time",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Date & Time": {
+      "main": [
+        [
+          {
+            "node": "Google Calendar Condition",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Booking Calendar Event": {
+      "main": [
+        [
+          {
+            "node": "Fix RhythmAgent Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Debug": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Debug1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Debug2": {
+      "main": [
+        [
+          {
+            "node": "Set Demo Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Debug3": {
+      "main": [
+        [
+          {
+            "node": "Initial Processing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Debug4": {
+      "main": [
+        [
+          {
+            "node": "Intent Classifier",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Debug5": {
+      "main": [
+        [
+          {
+            "node": "MaestroAgent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook - Booking Branch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fix RhythmAgent Data": {
+      "main": [
+        [
+          {
+            "node": "RhythmAgent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Calendar Condition": {
+      "main": [
+        [
+          {
+            "node": "Create Booking Calendar Event",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call LLM for BookingAgent": {
+      "main": [
+        [
+          {
+            "node": "Restore Buttons After LLM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HumanAgent Branch": {
+      "main": [
+        [
+          {
+            "node": "HumanAgent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HarmonyAgent Branch": {
+      "main": [
+        [
+          {
+            "node": "HarmonyAgent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "VirtuosoAgent Branch": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ComposerAgent Branch": {
+      "main": [
+        [
+          {
+            "node": "ComposerAgent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Prompt": {
+      "main": [
+        [
+          {
+            "node": "Call LLM for MedleyAgent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call LLM for MedleyAgent": {
+      "main": [
+        [
+          {
+            "node": "MedleyAgent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MedleyAgent Branch": {
+      "main": [
+        [
+          {
+            "node": "Build Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ScoreAgent Branch": {
+      "main": [
+        [
+          {
+            "node": "ScoreAgent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code2": {
+      "main": [
+        [
+          {
+            "node": "Call LLM for BookingAgent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MedleyAgent": {
+      "main": [
+        [
+          {
+            "node": "Format Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Restore Buttons After LLM": {
+      "main": [
+        [
+          {
+            "node": "Format Booking Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "09689742-ca3c-4d3a-a2e7-deada3644d09",
+  "meta": {
+    "instanceId": "abf67c2e1677bdd3ef317dd0650cb7b5409ada606c4b9975045aaecf5f5d963a"
+  },
+  "id": "TprHbTLb14fJu0TZ",
+  "tags": [
+    {
+      "createdAt": "2025-07-07T14:43:48.702Z",
+      "updatedAt": "2025-07-07T14:43:48.702Z",
+      "id": "Y6AhX8RPMu0t4FMK",
+      "name": "Pain Management"
+    },
+    {
+      "createdAt": "2025-07-07T14:43:48.713Z",
+      "updatedAt": "2025-07-07T14:43:48.713Z",
+      "id": "bZsUbDyl9RKpnQJe",
+      "name": "Healthcare"
+    },
+    {
+      "createdAt": "2025-07-07T14:43:48.691Z",
+      "updatedAt": "2025-07-07T14:43:48.691Z",
+      "id": "vcseD5tWUA00vWW7",
+      "name": "Sports Medicine"
+    }
+  ]
+}

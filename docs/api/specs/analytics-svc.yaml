@@ -1,0 +1,562 @@
+openapi: 3.0.0
+info:
+  title: Megarray Analytics Service API
+  description: API for analytics ingestion and insights generation using PostHog
+  version: 1.0.0
+  contact:
+    name: Megarray Support
+    email: support@megarray.ai
+    url: https://megarray.ai/support
+
+servers:
+  - url: http://localhost:8900
+    description: Local development server
+  - url: https://api.megarray.ai/analytics
+    description: Production server
+
+security:
+  - BearerAuth: []
+  - ApiKeyAuth: []
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        detail:
+          type: string
+          description: Error message
+        code:
+          type: string
+          description: Error code
+        timestamp:
+          type: string
+          format: date-time
+          description: When the error occurred
+
+    Event:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the event
+        name:
+          type: string
+          description: Event name
+        properties:
+          type: object
+          description: Event properties
+        timestamp:
+          type: string
+          format: date-time
+          description: When the event occurred
+        user_id:
+          type: string
+          description: User ID
+        team_id:
+          type: string
+          description: Team ID
+        session_id:
+          type: string
+          description: Session ID
+        metadata:
+          type: object
+          properties:
+            platform:
+              type: string
+              description: Platform where the event occurred
+            version:
+              type: string
+              description: Application version
+            environment:
+              type: string
+              description: Environment (dev, staging, prod)
+            ip:
+              type: string
+              description: IP address
+            user_agent:
+              type: string
+              description: User agent string
+
+    EventRequest:
+      type: object
+      required:
+        - name
+        - properties
+      properties:
+        name:
+          type: string
+          description: Event name
+        properties:
+          type: object
+          description: Event properties
+        user_id:
+          type: string
+          description: User ID
+        team_id:
+          type: string
+          description: Team ID
+        session_id:
+          type: string
+          description: Session ID
+        metadata:
+          type: object
+          properties:
+            platform:
+              type: string
+              description: Platform where the event occurred
+            version:
+              type: string
+              description: Application version
+            environment:
+              type: string
+              description: Environment (dev, staging, prod)
+
+    Insight:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the insight
+        name:
+          type: string
+          description: Insight name
+        description:
+          type: string
+          description: Insight description
+        type:
+          type: string
+          enum: [trend, funnel, retention, path, custom]
+          description: Insight type
+        query:
+          type: object
+          description: Insight query configuration
+        result:
+          type: object
+          description: Insight result data
+        status:
+          type: string
+          enum: [pending, processing, completed, failed]
+          description: Current status of the insight
+        created_at:
+          type: string
+          format: date-time
+          description: When the insight was created
+        updated_at:
+          type: string
+          format: date-time
+          description: When the insight was last updated
+        metadata:
+          type: object
+          properties:
+            team_id:
+              type: string
+              description: Team ID
+            user_id:
+              type: string
+              description: User ID
+            refresh_interval:
+              type: string
+              description: Refresh interval (e.g., "1h", "1d", "1w")
+            last_refresh:
+              type: string
+              format: date-time
+              description: Last refresh time
+
+    InsightRequest:
+      type: object
+      required:
+        - name
+        - type
+        - query
+      properties:
+        name:
+          type: string
+          description: Insight name
+        description:
+          type: string
+          description: Insight description
+        type:
+          type: string
+          enum: [trend, funnel, retention, path, custom]
+          description: Insight type
+        query:
+          type: object
+          description: Insight query configuration
+        metadata:
+          type: object
+          properties:
+            team_id:
+              type: string
+              description: Team ID
+            user_id:
+              type: string
+              description: User ID
+            refresh_interval:
+              type: string
+              description: Refresh interval (e.g., "1h", "1d", "1w")
+
+paths:
+  /v1/events:
+    post:
+      summary: Track event
+      description: Track a new analytics event
+      operationId: trackEvent
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventRequest'
+      responses:
+        '201':
+          description: Event tracked successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Event'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    get:
+      summary: List events
+      description: List analytics events with optional filtering
+      operationId: listEvents
+      parameters:
+        - name: name
+          in: query
+          schema:
+            type: string
+          description: Filter by event name
+        - name: team_id
+          in: query
+          schema:
+            type: string
+          description: Filter by team ID
+        - name: user_id
+          in: query
+          schema:
+            type: string
+          description: Filter by user ID
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Filter by start date
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date-time
+          description: Filter by end date
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+          description: Number of events to return
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Number of events to skip
+      responses:
+        '200':
+          description: Events retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  events:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Event'
+                  total:
+                    type: integer
+                    description: Total number of events
+                  limit:
+                    type: integer
+                    description: Number of events per page
+                  offset:
+                    type: integer
+                    description: Number of events skipped
+
+  /v1/insights:
+    post:
+      summary: Create insight
+      description: Create a new analytics insight
+      operationId: createInsight
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InsightRequest'
+      responses:
+        '201':
+          description: Insight created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Insight'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    get:
+      summary: List insights
+      description: List analytics insights with optional filtering
+      operationId: listInsights
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [trend, funnel, retention, path, custom]
+          description: Filter by insight type
+        - name: team_id
+          in: query
+          schema:
+            type: string
+          description: Filter by team ID
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, processing, completed, failed]
+          description: Filter by status
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+          description: Number of insights to return
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+          description: Number of insights to skip
+      responses:
+        '200':
+          description: Insights retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  insights:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Insight'
+                  total:
+                    type: integer
+                    description: Total number of insights
+                  limit:
+                    type: integer
+                    description: Number of insights per page
+                  offset:
+                    type: integer
+                    description: Number of insights skipped
+
+  /v1/insights/{insight_id}:
+    get:
+      summary: Get insight details
+      description: Get details of a specific insight
+      operationId: getInsight
+      parameters:
+        - name: insight_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID of the insight
+      responses:
+        '200':
+          description: Insight details retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Insight'
+        '404':
+          description: Insight not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    patch:
+      summary: Update insight
+      description: Update an existing insight
+      operationId: updateInsight
+      parameters:
+        - name: insight_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID of the insight
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InsightRequest'
+      responses:
+        '200':
+          description: Insight updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Insight'
+        '404':
+          description: Insight not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      summary: Delete insight
+      description: Delete an existing insight
+      operationId: deleteInsight
+      parameters:
+        - name: insight_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: ID of the insight
+      responses:
+        '204':
+          description: Insight deleted successfully
+        '404':
+          description: Insight not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /health:
+    get:
+      summary: Health check
+      description: Check the health status of the analytics service
+      operationId: checkHealth
+      responses:
+        '200':
+          description: Analytics service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+                  version:
+                    type: string
+                  uptime:
+                    type: number
+                    format: float
+                  memory_usage:
+                    type: number
+                    format: float
+                    description: Memory usage in MB
+                  metrics:
+                    type: object
+                    properties:
+                      total_events:
+                        type: integer
+                        description: Total number of events
+                      total_insights:
+                        type: integer
+                        description: Total number of insights
+                      active_insights:
+                        type: integer
+                        description: Number of active insights
+                      average_latency:
+                        type: number
+                        format: float
+                        description: Average processing time in ms
+                      error_rate:
+                        type: number
+                        format: float
+                        description: Error rate percentage
+                      event_type_distribution:
+                        type: object
+                        properties:
+                          page_view:
+                            type: integer
+                            description: Number of page view events
+                          user_action:
+                            type: integer
+                            description: Number of user action events
+                          system:
+                            type: integer
+                            description: Number of system events
+                          custom:
+                            type: integer
+                            description: Number of custom events
+                      insight_type_distribution:
+                        type: object
+                        properties:
+                          trend:
+                            type: integer
+                            description: Number of trend insights
+                          funnel:
+                            type: integer
+                            description: Number of funnel insights
+                          retention:
+                            type: integer
+                            description: Number of retention insights
+                          path:
+                            type: integer
+                            description: Number of path insights
+                          custom:
+                            type: integer
+                            description: Number of custom insights
+        '503':
+          description: Analytics service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error' 

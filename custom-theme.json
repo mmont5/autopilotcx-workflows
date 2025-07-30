@@ -1,0 +1,23 @@
+{
+  "branding": {
+    "name": "AutopilotCX",
+    "logo": "/static/autopilotcx-logo.svg",
+    "favicon": "/static/autopilotcx-favicon.ico"
+  },
+  "ui": {
+    "title": "AutopilotCX",
+    "header": {
+      "title": "AutopilotCX",
+      "subtitle": "Workflow Automation"
+    },
+    "sidebar": {
+      "workflows": "Workflows",
+      "credentials": "Credentials",
+      "settings": "Settings"
+    }
+  },
+  "theme": {
+    "primaryColor": "#0066FF",
+    "secondaryColor": "#333333"
+  }
+} 

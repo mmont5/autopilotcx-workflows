@@ -1,0 +1,133 @@
+{
+  "name": "Pediatrics Specialization Add-on",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "analyzePediatricInquiry",
+        "inquiryData": "={{ $json.body }}",
+        "specialization": "pediatrics",
+        "triggers": {
+          "emergency": ["fever", "injury", "breathing_difficulty"],
+          "routine": ["checkup", "vaccination", "wellness"],
+          "specialized": ["development", "behavioral", "nutrition"]
+        }
+      },
+      "name": "Pediatric Analysis Agent",
+      "type": "autopilotcx-nodes.specializedAgent",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "routePediatricInquiry",
+        "analysisResult": "={{ $json.analysis }}",
+        "routingRules": {
+          "emergency": "immediate_human",
+          "routine": "scheduler",
+          "specialized": "specialist_coordinator"
+        }
+      },
+      "name": "Pediatric Routing Agent",
+      "type": "autopilotcx-nodes.specializedAgent",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "operation": "schedulePediatricVisit",
+        "clientId": "={{ $json.body.clientId }}",
+        "visitType": "={{ $json.analysis.visitType }}",
+        "duration": "={{ $json.analysis.estimatedDuration }}",
+        "preferences": {
+          "location": "={{ $json.body.preferredLocation }}",
+          "time": "={{ $json.body.preferredTime }}",
+          "pediatrician": "={{ $json.body.preferredPediatrician }}"
+        }
+      },
+      "name": "Pediatric Scheduler",
+      "type": "autopilotcx-nodes.specializedAgent",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "operation": "preparePediatricVisit",
+        "visitData": "={{ $json.visit }}",
+        "requirements": {
+          "forms": ["child_history", "vaccination_records"],
+          "documents": ["insurance", "previous_records"],
+          "preparation": ["comfort_items", "snacks", "toys"]
+        }
+      },
+      "name": "Pediatric Prep Agent",
+      "type": "autopilotcx-nodes.specializedAgent",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "operation": "sendPediatricInstructions",
+        "clientId": "={{ $json.body.clientId }}",
+        "instructionType": "pre_visit",
+        "channels": ["email", "sms"],
+        "content": {
+          "preparation": "={{ $json.preparation.instructions }}",
+          "what_to_bring": "={{ $json.preparation.required_items }}",
+          "location_info": "={{ $json.visit.location_details }}",
+          "child_preparation": "={{ $json.preparation.child_instructions }}"
+        }
+      },
+      "name": "Pediatric Instruction Agent",
+      "type": "autopilotcx-nodes.specializedAgent",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "operation": "trackPediatricMetrics",
+        "practiceId": "={{ $json.body.practiceId }}",
+        "metrics": [
+          "visit_types",
+          "emergency_cases",
+          "vaccination_rates",
+          "development_tracking",
+          "parent_satisfaction",
+          "follow_up_compliance"
+        ]
+      },
+      "name": "Pediatric Analytics Agent",
+      "type": "autopilotcx-nodes.specializedAgent",
+      "typeVersion": 1,
+      "position": [1250, 300]
+    }
+  ],
+  "connections": {
+    "Pediatric Analysis Agent": {
+      "main": [[{"node": "Pediatric Routing Agent", "type": "main", "index": 0}]]
+    },
+    "Pediatric Routing Agent": {
+      "main": [[{"node": "Pediatric Scheduler", "type": "main", "index": 0}]]
+    },
+    "Pediatric Scheduler": {
+      "main": [[{"node": "Pediatric Prep Agent", "type": "main", "index": 0}]]
+    },
+    "Pediatric Prep Agent": {
+      "main": [[{"node": "Pediatric Instruction Agent", "type": "main", "index": 0}]]
+    },
+    "Pediatric Instruction Agent": {
+      "main": [[{"node": "Pediatric Analytics Agent", "type": "main", "index": 0}]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "metadata": {
+    "specialization": "pediatrics",
+    "version": "1.0.0",
+    "compatibleWith": ["demo", "full"],
+    "integrationPoints": {
+      "demo": ["Demo Intake Webhook", "Maestro Agent"],
+      "full": ["Lead Intake Webhook", "Maestro Agent"]
+    }
+  }
+} 

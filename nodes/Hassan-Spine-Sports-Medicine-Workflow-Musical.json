@@ -1,0 +1,701 @@
+{
+  "name": "Hassan-Spine-Sports-Medicine-Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "intent",
+                    "rightValue": "appointment",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "7aa79981-a00f-40a1-8562-a466b9f1e788"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Booking Node"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "03e1f2c5-0755-4359-8bb8-fb0830861b88",
+                    "leftValue": "intent",
+                    "rightValue": "clinical",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "ClinicalAgent"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "ef165815-47fc-4156-ba33-b4ae4b041724",
+                    "leftValue": "intent",
+                    "rightValue": "escalate",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "HumanAgent"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "54694806-ac6c-4ebf-8a9b-58419a74065b",
+                    "leftValue": "intent",
+                    "rightValue": "billing",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "ScoreAgent"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "d6ee132a-f01c-4e73-af0d-e4ff9d0280e0",
+                    "leftValue": "intent",
+                    "rightValue": "feedback",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "FeedbackAgent"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "123eba17-920b-42ae-8373-016ad3f4e5c5",
+                    "leftValue": "intent",
+                    "rightValue": "general",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "VirtuosoAgent/ComposerAgent"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [2380, -703],
+      "id": "adb3ad35-76b1-43d2-adc5-a5f64d6ee77d",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Example: Check for required info and respond accordingly\nconst requiredFields = ['user_name', 'contact', 'preferred_time'];\nlet missingFields = requiredFields.filter(field => !$json[field]);\n\nif (missingFields.length > 0) {\n  return [{\n    json: {\n      ...$json,\n      agent_response: `To book your appointment, I need: ${missingFields.join(', ')}. Please provide this information.`\n    }\n  }];\n}\n\n// If all info is present, proceed to show available slots (for demo, use static slots)\nconst availableSlots = [\n  \"2024-05-21 10:00 AM\",\n  \"2024-05-21 2:00 PM\",\n  \"2024-05-22 11:00 AM\"\n];\n\nreturn [{\n  json: {\n    ...$json,\n    agent_response: `Great! Here are available slots: ${availableSlots.join(', ')}. Please reply with your preferred slot.`\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2600, -1140],
+      "id": "b27169ed-6383-435b-b246-e89264f7ac63",
+      "name": "Booking Node"
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "mmont5@gmail.com",
+          "mode": "list",
+          "cachedResultName": "mmont5@gmail.com"
+        },
+        "start": "={{$json.selected_slot}}",
+        "end": "={{$json.end_slot}}",
+        "additionalFields": {
+          "attendees": [],
+          "description": "=  Patient Name: {{$json.patient_name}}\n  Email: {{$json.contact_email}}\n  Phone: {{$json.contact_phone}}\n  Reason: {{$json.reason}}\n  Notes: {{$json.notes}}",
+          "summary": "=Appointment: {{$json.patient_name}}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [3040, -1140],
+      "id": "a1e2e2f1-b1df-48e5-a990-7492baae8c8d",
+      "name": "Google Calendar",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "cxmR653j79lHgmyX",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const start = new Date($json.selected_slot);\nconst end = new Date(start.getTime() + 60 * 60000); // 60 minutes later\n\nreturn [{\n  ...$json,\n  selected_slot_end: end.toISOString()\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2820, -1140],
+      "id": "fec837d1-47a7-4751-9eaf-fe0bfbe3fc15",
+      "name": "Date & Time"
+    },
+    {
+      "parameters": {
+        "operation": "notify",
+        "notificationData": "={{$json.contact_email}}"
+      },
+      "type": "CUSTOM.rhythmAgent",
+      "typeVersion": 1,
+      "position": [3260, -1140],
+      "id": "a661b724-6b7a-4760-8c89-6eab4a6541f1",
+      "name": "RhythmAgent"
+    },
+    {
+      "parameters": {
+        "medicalData": "=return [{\n  response: \"Thank you for your question. For clinical or medical inquiries, a qualified specialist will review your message and respond as soon as possible. If this is urgent, please call our office directly or seek immediate care.\"\n}];"
+      },
+      "type": "CUSTOM.clinicalAgent",
+      "typeVersion": 1,
+      "position": [2600, -940],
+      "id": "f31c4b7f-3991-4c70-9fdd-af2b6192537a",
+      "name": "ClinicalAgent"
+    },
+    {
+      "parameters": {
+        "operation": "transfer",
+        "transferData": "=return [{\n  response: \"Your request is being transferred to a human specialist. Please hold on, and someone from our team will assist you shortly.\"\n}];"
+      },
+      "type": "CUSTOM.humanAgent",
+      "typeVersion": 1,
+      "position": [2820, -865],
+      "id": "b04669b3-8593-4e21-b329-ea9a200a3562",
+      "name": "HumanAgent"
+    },
+    {
+      "parameters": {
+        "billingData": "=Demo billing processed for ${{ $json.amount }} ({{ $json.patient_name }}, Reason: {{ $json.reason }})"
+      },
+      "type": "CUSTOM.scoreAgent",
+      "typeVersion": 1,
+      "position": [2820, -620],
+      "id": "9515eb7a-97b9-4242-9c95-860f3e3cec53",
+      "name": "ScoreAgent"
+    },
+    {
+      "parameters": {
+        "feedbackData": "={{ \"Thank you for your feedback! We value your input and will use it to improve our services.\" }}"
+      },
+      "type": "CUSTOM.feedbackAgent",
+      "typeVersion": 1,
+      "position": [2660, -480],
+      "id": "b5ae174b-6254-4571-b05e-edc3cdd0f426",
+      "name": "FeedbackAgent"
+    },
+    {
+      "parameters": {
+        "interactionData": "=return [{\n  response: \"Hi there! How can I assist you today? I'm here to help with any questions or support you need.\"\n}];"
+      },
+      "type": "CUSTOM.virtuosoAgent",
+      "typeVersion": 1,
+      "position": [2660, -280],
+      "id": "c473c0fa-3563-43e5-a300-e5f23ce469fd",
+      "name": "VirtuosoAgent"
+    },
+    {
+      "parameters": {
+        "contentData": "=return [{\n  response: \"I can help you with information, resources, or crafting the perfect message. What would you like to do next?\"\n}];"
+      },
+      "type": "CUSTOM.composerAgent",
+      "typeVersion": 1,
+      "position": [2660, -100],
+      "id": "5443db93-ffb0-46c1-9e31-83c512feebbb",
+      "name": "ComposerAgent"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.item.json;\n\n// Helper to parse JSON fields or default to []\nconst parseOrDefault = (field, def = []) => {\n  if (!data[field]) return def;\n  if (typeof data[field] === 'string') {\n    try { return JSON.parse(data[field]); } catch { return def; }\n  }\n  if (Array.isArray(data[field])) return data[field];\n  return def;\n};\n\ndata.locations = parseOrDefault('locations');\ndata.specialists = parseOrDefault('specialists');\ndata.authoritative_sites = parseOrDefault('authoritative_sites');\ndata.important_sites = parseOrDefault('important_sites');\n\n// Add any other normalization or computed fields here\n\nreturn { json: data };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [620, -640],
+      "id": "2c2d4bb5-4585-4556-ad4d-f8c62d1e785b",
+      "name": "Initial Processing",
+      "alwaysOutputData": false,
+      "executeOnce": false,
+      "retryOnFail": false
+    },
+    {
+      "parameters": {
+        "jsCode": "     const processedData = $input.item.json;\n     const status = {\n       ...processedData,\n       status: 'SUCCESS',\n       // ...rest of your status fields\n     };\n     return { json: status };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1940, -640],
+      "id": "81f716ff-8e4f-4811-9ae9-e2b7d2b0cd8d",
+      "name": "Supabase Update"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://twtxouksqmgexkfwmlub.supabase.co/rest/v1/demo?id=eq.{{$node[\"Webhook\"].json[\"body\"][\"id\"]}}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR3dHhvdWtzcW1nZXhrZndtbHViIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0Njk4NTgyMSwiZXhwIjoyMDYyNTYxODIxfQ.7oEFvQtChkIwBP7WBPDlu9IQRrj_hUwJJnPYhTBVp8o"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR3dHhvdWtzcW1nZXhrZndtbHViIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0Njk4NTgyMSwiZXhwIjoyMDYyNTYxODIxfQ.7oEFvQtChkIwBP7WBPDlu9IQRrj_hUwJJnPYhTBVp8o"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "logourl",
+              "value": "test-logo"
+            },
+            {
+              "name": "tagline",
+              "value": "test-tagline"
+            },
+            {
+              "name": "specialists",
+              "value": "test-specialists"
+            },
+            {
+              "name": "updated_at",
+              "value": "2025-05-18T23:52:24.409Z"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2160, -640],
+      "id": "c57a323c-a1f1-45c3-b63e-00289b8540e8",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "0a274e64-8902-4f73-ac54-7f37206c7a31",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [400, -640],
+      "id": "d5a99555-56f2-4081-af8a-3e57313ba0ba",
+      "name": "Webhook",
+      "webhookId": "0a274e64-8902-4f73-ac54-7f37206c7a31"
+    },
+    {
+      "parameters": {
+        "url": "https://maps.googleapis.com/maps/api/place/findplacefromtext/json",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "input",
+              "value": "={{$json[\"company_name\"]}}: Shady Hassan, MD, {{$json[\"locations\"][0].address1}}, {{$json[\"locations\"][0].address2}}, {{$json[\"locations\"][0].city}}, {{$json[\"locations\"][0].state}} {{$json[\"locations\"][0].zip}}"
+            },
+            {
+              "name": "inputtype",
+              "value": "textquery"
+            },
+            {
+              "name": "fields",
+              "value": "place_id"
+            },
+            {
+              "name": "key",
+              "value": "AIzaSyBBbUr7w1_R6OoxAjWYz5DR60o6ArXcdvQ"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1060, -640],
+      "id": "6d2e8583-0272-4802-a033-bc233fe60639",
+      "name": "Find Place ID"
+    },
+    {
+      "parameters": {
+        "url": "https://maps.googleapis.com/maps/api/place/details/json",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "place_id",
+              "value": "={{$node[\"Find Place ID\"].json[\"candidates\"][0][\"place_id\"]}}"
+            },
+            {
+              "name": "fields",
+              "value": "name,formatted_address,opening_hours,url"
+            },
+            {
+              "name": "key",
+              "value": "AIzaSyBBbUr7w1_R6OoxAjWYz5DR60o6ArXcdvQ"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1280, -640],
+      "id": "21d2644c-de7c-44e7-acf6-7fbf8f31e557",
+      "name": "Get Place Details"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the main data from the Initial Processing node (Supabase row)\nconst mainData = $items(\"Initial Processing\")[0]?.json || {};\n\n// Get the Google Places result from the previous node (this node's input)\nconst googleData = $json?.result || {};\n\n// Attach Google Places data to the main data object\nmainData.google_place = googleData;\n\n// Return the merged object for downstream agents\nreturn { json: mainData };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1500, -640],
+      "id": "f603b990-7282-4c31-8d6a-76fd830bba70",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "jsCode": "let locations = $json.body.locations;\nif (typeof locations === \"string\") {\n  locations = JSON.parse(locations);\n}\nconst loc = locations[0];\n\nconst addressParts = [\n  loc.address1,\n  loc.address2 && loc.address2.trim() !== \"\" ? loc.address2 : null,\n  loc.city,\n  loc.state + \" \" + loc.zip\n].filter(Boolean);\n\nreturn {\n  json: {\n    ...$json,\n    formatted_address: addressParts.join(\", \" )\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [840, -640],
+      "id": "8f9bf645-ca7c-4c20-bd46-74b37ce3531f",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "onboardingData": "=return [{\n  response: `Hello and welcome to ${$json.company_name || \"Hassan Spine & Sports Medicine\"}! My name is Sarah, and I'll be your virtual assistant today. We're passionate about ${$json.category ? $json.category.toLowerCase() : \"pain management and sports medicine\"}, and we're glad you're here. How can I help make things easier for you today?`\n}];"
+      },
+      "type": "CUSTOM.preludeAgent",
+      "typeVersion": 1,
+      "position": [1720, -640],
+      "id": "13c7d849-c10a-415a-9dc0-fa82c67a964c",
+      "name": "PreludeAgent"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Booking Node",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "ClinicalAgent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "HumanAgent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "ScoreAgent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "FeedbackAgent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "VirtuosoAgent",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "ComposerAgent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Booking Node": {
+      "main": [
+        [
+          {
+            "node": "Date & Time",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Date & Time": {
+      "main": [
+        [
+          {
+            "node": "Google Calendar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Calendar": {
+      "main": [
+        [
+          {
+            "node": "RhythmAgent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RhythmAgent": {
+      "main": [
+        []
+      ]
+    },
+    "ClinicalAgent": {
+      "main": [
+        [
+          {
+            "node": "HumanAgent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ScoreAgent": {
+      "main": [
+        []
+      ]
+    },
+    "Initial Processing": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Update": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Initial Processing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Place ID": {
+      "main": [
+        [
+          {
+            "node": "Get Place Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Place Details": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "PreludeAgent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "Find Place ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PreludeAgent": {
+      "main": [
+        [
+          {
+            "node": "Supabase Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "816a1c8c-c946-46cb-8a73-199b208da510",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "fbd88f9479e328c9dcd2d791c8675e6f717e67ccfbe95d5a0a9b35d9c30b737c"
+  },
+  "id": "u8EG4siKpuRaTTVG",
+  "tags": [
+    {
+      "createdAt": "2025-05-26T21:54:32.164Z",
+      "updatedAt": "2025-05-26T21:54:32.164Z",
+      "id": "IBVxmK6MYIgZt81u",
+      "name": "Pain Management"
+    },
+    {
+      "createdAt": "2025-05-26T21:54:38.434Z",
+      "updatedAt": "2025-05-26T21:54:38.434Z",
+      "id": "LHrsdPb0fzbsvQFZ",
+      "name": "Sports Medicine"
+    },
+    {
+      "createdAt": "2025-05-30T19:39:11.500Z",
+      "updatedAt": "2025-05-30T19:39:11.500Z",
+      "id": "YnMxunEN0ZriCScU",
+      "name": "Healthcare"
+    }
+  ]
+} 
