@@ -59,6 +59,8 @@ services:
         value: cx.autopilotcx.app
       - key: N8N_PORT
         value: 5678
+      - key: PORT
+        value: 5678
       - key: N8N_PROTOCOL
         value: https
 
