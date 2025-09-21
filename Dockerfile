@@ -15,14 +15,15 @@ ENV NODE_ENV=production
 USER root
 RUN apk add --no-cache postgresql-client curl
 
+# Create necessary directories
+RUN mkdir -p /home/node/.n8n/workflows /home/node/.n8n/credentials && \
+    chown -R node:node /home/node/.n8n
+
 # Switch back to n8n user
 USER node
 
-# Copy custom workflows (if any)
+# Copy workflows if they exist
 COPY --chown=node:node workflows/ /home/node/.n8n/workflows/
-
-# Copy custom credentials (if any)
-COPY --chown=node:node credentials/ /home/node/.n8n/credentials/
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=60s \
