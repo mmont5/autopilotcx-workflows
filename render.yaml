@@ -69,6 +69,8 @@ services:
         generateValue: true
       - key: N8N_USER_MANAGEMENT_JWT_SECRET
         generateValue: true
+      - key: N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS
+        value: false
 
       # AI API Keys
       - key: OPENROUTER_API_KEY
