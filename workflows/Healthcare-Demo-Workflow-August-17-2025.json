@@ -1,0 +1,259 @@
+{
+  "name": "Healthcare-Demo-Workflow-August-17-2025",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "healthcare-demo-chat",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -1000,
+        200
+      ],
+      "id": "webhook-node",
+      "name": "Chat Webhook",
+      "webhookId": "healthcare-demo-chat"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract message and demo context from webhook - UNIVERSAL HEALTHCARE\nconst items = $input.all();\nconst returnData = [];\n\nfor (let i = 0; i < items.length; i++) {\n  const item = items[i];\n  \n  // Extract user message from multiple possible sources\n  let userMessage = \"\";\n  let demoId = \"\";\n  let bookingState = \"initial\";\n  let bookingData = {};\n  \n  // Try different message sources\n  if (item.json.body && item.json.body.message) {\n    userMessage = item.json.body.message;\n    demoId = item.json.body.demoId || \"\";\n    bookingState = item.json.body.bookingState || \"initial\";\n    bookingData = item.json.body.bookingData || {};\n  } else if (item.json.message) {\n    userMessage = item.json.message;\n    demoId = item.json.demoId || \"\";\n    bookingState = item.json.bookingState || \"initial\";\n    bookingData = item.json.bookingData || {};\n  }\n  \n  // CRITICAL: Get demo context from Supabase data (passed in webhook)\n  // This will be populated with actual practice data when webhook is called\n  let practiceContext = {\n    companyName: item.json.company_name || \"Healthcare Practice\",\n    agentName: item.json.agent_name || \"Assistant\",\n    industry: \"healthcare\",\n    category: item.json.category || \"General Healthcare\",\n    locations: item.json.locations || [],\n    services: item.json.services || [],\n    specialists: item.json.specialists || [],\n    businessHours: item.json.business_hours || {\n      monday: \"9:00 AM - 5:00 PM\",\n      tuesday: \"9:00 AM - 5:00 PM\", \n      wednesday: \"9:00 AM - 5:00 PM\",\n      thursday: \"9:00 AM - 5:00 PM\",\n      friday: \"9:00 AM - 5:00 PM\",\n      saturday: \"Closed\",\n      sunday: \"Closed\"\n    },\n    contact: {\n      phone: item.json.company_phone || \"\",\n      email: item.json.company_email || \"\"\n    }\n  };\n  \n  // If no practice data provided, use fallback (for testing)\n  if (!item.json.company_name && demoId === \"7c6c2872-68a7-4f1d-bfed-eaaaf05b142e\") {\n    practiceContext = {\n      companyName: \"Hassan Spine & Sports Medicine\",\n      agentName: \"Olivia\",\n      industry: \"healthcare\",\n      category: \"Spine & Sports Medicine\",\n      locations: [\n        {\n          name: \"Main Office - Newark\",\n          address: \"4755 Ogletown-Stanton Rd, Newark, DE 19713\",\n          phone: \"(302) 355-0900\"\n        },\n        {\n          name: \"Middletown Office\",\n          address: \"112 Sandhill Dr, Middletown, DE 19709\",\n          phone: \"(302) 376-8808\"\n        }\n      ],\n      services: [\n        \"Spine Pain Management\",\n        \"Sports Medicine\", \n        \"Physical Therapy\",\n        \"Epidural Injections\",\n        \"Chronic Pain Treatment\"\n      ],\n      specialists: [\n        {\n          name: \"Dr. Hassan\",\n          title: \"Pain Management Specialist\",\n          specialties: [\"Interventional Pain Management\", \"Sports Medicine\"]\n        }\n      ],\n      businessHours: {\n        monday: \"8:00 AM - 5:00 PM\",\n        tuesday: \"8:00 AM - 5:00 PM\", \n        wednesday: \"8:00 AM - 5:00 PM\",\n        thursday: \"8:00 AM - 5:00 PM\",\n        friday: \"8:00 AM - 5:00 PM\",\n        saturday: \"Closed\",\n        sunday: \"Closed\"\n      },\n      contact: {\n        phone: \"(302) 355-0900\",\n        email: \"info@hassanspine.com\"\n      }\n    };\n  }\n  \n  returnData.push({\n    json: {\n      userMessage: userMessage,\n      demoId: demoId,\n      bookingState: bookingState,\n      bookingData: bookingData,\n      context: practiceContext,\n      timestamp: new Date().toISOString(),\n      originalData: item.json // Preserve all original data\n    },\n    pairedItem: {\n      item: i\n    }\n  });\n}\n\nreturn returnData;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -800,
+        200
+      ],
+      "id": "extract-context",
+      "name": "Extract Context & Message"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build healthcare prompt - UNIVERSAL for any healthcare practice\nconst items = $input.all();\nconst returnData = [];\n\nfor (let i = 0; i < items.length; i++) {\n  const item = items[i];\n  const { userMessage, context, bookingState, bookingData } = item.json;\n  \n  // Universal healthcare symptom detection\n  const medicalKeywords = [\n    // Pain & Symptoms\n    'pain', 'hurt', 'ache', 'sore', 'injury', 'discomfort', 'stiff', 'numb', 'tingling', 'weakness', 'spasm', 'chronic', 'acute',\n    // Body Parts\n    'back', 'neck', 'shoulder', 'knee', 'hip', 'spine', 'muscle', 'joint', 'head', 'tooth', 'chest', 'heart', 'stomach',\n    // Conditions\n    'headache', 'migraine', 'fever', 'cough', 'cold', 'flu', 'infection', 'allergy', 'asthma', 'diabetes', 'hypertension'\n  ];\n  \n  const lowerMessage = userMessage.toLowerCase();\n  const hasSymptoms = medicalKeywords.some(keyword => lowerMessage.includes(keyword));\n  \n  // Universal booking intent detection\n  const bookingKeywords = [\n    'appointment', 'book', 'schedule', 'visit', 'see doctor', 'consultation',\n    'new patient', 'existing patient', 'available', 'when can', 'check-up', 'exam'\n  ];\n  \n  const wantsBooking = bookingKeywords.some(keyword => lowerMessage.includes(keyword));\n  \n  // Build dynamic practice information\n  const locationInfo = context.locations && context.locations.length > 0 \n    ? `We have ${context.locations.length} location${context.locations.length > 1 ? 's' : ''} serving you.`\n    : \"We're here to serve you.\";\n  \n  const servicesInfo = context.services && context.services.length > 0\n    ? `Our services include: ${context.services.slice(0, 5).join(', ')}${context.services.length > 5 ? ' and more' : ''}.`\n    : \"We offer comprehensive healthcare services.\";\n  \n  const specialistInfo = context.specialists && context.specialists.length > 0\n    ? `Our specialists include ${context.specialists.map(s => s.name).join(', ')}.`\n    : \"Our experienced healthcare team is here for you.\";\n  \n  const contactInfo = context.contact && context.contact.phone\n    ? `You can reach us at ${context.contact.phone}.`\n    : \"Please contact us to learn more.\";\n  \n  // Build context-aware system prompt\n  let systemPrompt = `You are ${context.agentName}, a warm and professional healthcare assistant at ${context.companyName}. \n\nYou specialize in ${context.category} and are dedicated to providing exceptional patient care.\n\nPractice Information:\n- Company: ${context.companyName}\n- Specialties: ${context.category}\n- ${locationInfo}\n- ${servicesInfo}\n- ${specialistInfo}\n- ${contactInfo}\n\nIMPORTANT GUIDELINES:\n1. Always respond as a human healthcare assistant - never mention being AI\n2. Show genuine empathy and concern for patient wellbeing\n3. Provide helpful, professional medical information (educational only)\n4. Encourage booking appointments for proper evaluation\n5. Reference our specific services and specialists when relevant\n6. Be warm, conversational, and reassuring\n7. If patient describes symptoms, acknowledge their concern with compassion\n8. Always maintain HIPAA compliance - no diagnosis over chat\n9. Adapt your expertise to our practice's specialties\n10. Guide patients toward appropriate care based on their needs\n\nCurrent conversation context:\n- Booking State: ${bookingState}\n- Patient has symptoms: ${hasSymptoms ? 'Yes' : 'No'}\n- Wants to book: ${wantsBooking ? 'Yes' : 'No'}`;\n\n  let userPrompt = `A patient says: \"${userMessage}\"\n\nRespond with empathy, professionalism, and helpful guidance. If they're describing symptoms or health concerns, acknowledge their situation and explain how ${context.companyName} can help with our ${context.category} expertise. If appropriate, guide them toward booking an appointment.`;\n\n  // Special handling for different scenarios\n  if (hasSymptoms && wantsBooking) {\n    userPrompt += `\\n\\nThe patient has both health concerns and wants to book - prioritize helping them schedule while acknowledging their symptoms.`;\n  } else if (hasSymptoms) {\n    userPrompt += `\\n\\nThe patient is describing symptoms or health concerns - show empathy and explain how our specialists can help.`;\n  } else if (wantsBooking) {\n    userPrompt += `\\n\\nThe patient wants to book an appointment - guide them through the process warmly.`;\n  }\n  \n  returnData.push({\n    json: {\n      ...item.json,\n      systemPrompt: systemPrompt,\n      userPrompt: userPrompt,\n      hasSymptoms: hasSymptoms,\n      wantsBooking: wantsBooking,\n      practiceType: context.category\n    },\n    pairedItem: {\n      item: i\n    }\n  });\n}\n\nreturn returnData;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -600,
+        200
+      ],
+      "id": "build-prompt",
+      "name": "Build Healthcare Prompt"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://localhost:8200/v1/completions",
+        "sendBody": true,
+        "bodyContentType": "json",
+        "jsonBody": "={\n  \"prompt\": \"{{ $json.systemPrompt }}\\n\\n{{ $json.userPrompt }}\",\n  \"max_tokens\": 400,\n  \"temperature\": 0.7,\n  \"top_p\": 0.9,\n  \"frequency_penalty\": 0.1,\n  \"presence_penalty\": 0.1,\n  \"stop\": [\"\\n\\nPatient:\", \"\\n\\nUser:\"],\n  \"industry\": \"healthcare\",\n  \"category\": \"{{ $json.practiceType }}\",\n  \"agent_name\": \"{{ $json.context.agentName }}\",\n  \"company_name\": \"{{ $json.context.companyName }}\"\n}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -400,
+        200
+      ],
+      "id": "llm-request",
+      "name": "Get AI Response"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format and enhance the AI response - UNIVERSAL HEALTHCARE\nconst items = $input.all();\nconst returnData = [];\n\nfor (let i = 0; i < items.length; i++) {\n  const item = items[i];\n  \n  // Extract response from different possible fields\n  let aiResponse = \"\";\n  if (item.json.response) {\n    aiResponse = item.json.response;\n  } else if (item.json.text) {\n    aiResponse = item.json.text;\n  } else if (item.json.content) {\n    aiResponse = item.json.content;\n  } else if (item.json.choices && item.json.choices[0]) {\n    aiResponse = item.json.choices[0].text || item.json.choices[0].message?.content || \"\";\n  }\n  \n  // Clean up the response\n  aiResponse = aiResponse.trim();\n  \n  // Add agent name if not already present\n  const agentName = item.json.context.agentName;\n  const companyName = item.json.context.companyName;\n  \n  if (!aiResponse.toLowerCase().includes(agentName.toLowerCase())) {\n    aiResponse = `Hi! I'm ${agentName} from ${companyName}. ${aiResponse}`;\n  }\n  \n  // Dynamic highlighting for key terms (frontend will process this)\n  const highlightTerms = [\n    companyName,\n    agentName,\n    'appointment',\n    'consultation',\n    item.json.context.category,\n    ...(item.json.context.specialists || []).map(s => s.name)\n  ].filter(Boolean);\n  \n  let enhancedResponse = aiResponse;\n  highlightTerms.forEach(term => {\n    const regex = new RegExp(`\\\\b${term}\\\\b`, 'gi');\n    enhancedResponse = enhancedResponse.replace(regex, `<span class=\"highlight\">${term}</span>`);\n  });\n  \n  // Determine next steps based on response content\n  let suggestedAction = \"continue_conversation\";\n  if (enhancedResponse.toLowerCase().includes('appointment') || \n      enhancedResponse.toLowerCase().includes('schedule') ||\n      enhancedResponse.toLowerCase().includes('book')) {\n    suggestedAction = \"offer_booking\";\n  }\n  \n  // Add HIPAA compliance footer for healthcare demos\n  const hipaaFooter = \"\\n\\n*This conversation is for informational purposes only and does not constitute medical advice. Please consult with our healthcare professionals for proper diagnosis and treatment.*\";\n  \n  returnData.push({\n    json: {\n      response: enhancedResponse + hipaaFooter,\n      rawResponse: aiResponse,\n      agentName: agentName,\n      companyName: companyName,\n      timestamp: new Date().toISOString(),\n      demoId: item.json.demoId,\n      suggestedAction: suggestedAction,\n      bookingState: item.json.bookingState,\n      hasSymptoms: item.json.hasSymptoms,\n      wantsBooking: item.json.wantsBooking,\n      practiceType: item.json.practiceType,\n      industry: \"healthcare\"\n    },\n    pairedItem: {\n      item: i\n    }\n  });\n}\n\nreturn returnData;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -200,
+        200
+      ],
+      "id": "format-response",
+      "name": "Format & Enhance Response"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"response\": \"{{ $json.response }}\",\n  \"agentName\": \"{{ $json.agentName }}\",\n  \"companyName\": \"{{ $json.companyName }}\",\n  \"timestamp\": \"{{ $json.timestamp }}\",\n  \"suggestedAction\": \"{{ $json.suggestedAction }}\",\n  \"bookingState\": \"{{ $json.bookingState }}\",\n  \"demoId\": \"{{ $json.demoId }}\",\n  \"hasSymptoms\": {{ $json.hasSymptoms }},\n  \"wantsBooking\": {{ $json.wantsBooking }},\n  \"practiceType\": \"{{ $json.practiceType }}\",\n  \"industry\": \"{{ $json.industry }}\",\n  \"status\": \"success\"\n}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "Access-Control-Allow-Origin", 
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, GET, OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type, Authorization"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        200
+      ],
+      "id": "send-response",
+      "name": "Send Response"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Error handling and fallback response - UNIVERSAL HEALTHCARE\nconst items = $input.all();\nconst returnData = [];\n\n// Extract practice info from original context if available\nlet companyName = \"Healthcare Practice\";\nlet agentName = \"Assistant\";\nlet contactPhone = \"\";\n\nif (items.length > 0 && items[0].json.context) {\n  companyName = items[0].json.context.companyName || companyName;\n  agentName = items[0].json.context.agentName || agentName;\n  contactPhone = items[0].json.context.contact?.phone || contactPhone;\n}\n\nconst contactInfo = contactPhone ? ` at ${contactPhone}` : \"\";\n\n// If we reach this node, something went wrong\nconst fallbackResponse = {\n  response: `Hi! I'm ${agentName} from ${companyName}. I'm here to help you with your healthcare needs. Due to a temporary technical issue, please call us directly${contactInfo} or try again in a moment. How can I assist you today?`,\n  agentName: agentName,\n  companyName: companyName, \n  timestamp: new Date().toISOString(),\n  suggestedAction: \"contact_directly\",\n  status: \"fallback_response\",\n  industry: \"healthcare\",\n  error: \"Workflow execution error - using fallback\"\n};\n\nreturnData.push({\n  json: fallbackResponse\n});\n\nreturn returnData;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -200,
+        400
+      ],
+      "id": "error-handler",
+      "name": "Error Handler"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        400
+      ],
+      "id": "error-response",
+      "name": "Error Response"
+    }
+  ],
+  "connections": {
+    "Chat Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extract Context & Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Context & Message": {
+      "main": [
+        [
+          {
+            "node": "Build Healthcare Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Healthcare Prompt": {
+      "main": [
+        [
+          {
+            "node": "Get AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get AI Response": {
+      "main": [
+        [
+          {
+            "node": "Format & Enhance Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format & Enhance Response": {
+      "main": [
+        [
+          {
+            "node": "Send Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Handler": {
+      "main": [
+        [
+          {
+            "node": "Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "versionId": "healthcare-universal-v1",
+  "meta": {
+    "instanceId": "healthcare-demo-universal-workflow"
+  },
+  "id": "healthcare-demo-august-17-2025",
+  "tags": [
+    {
+      "id": "healthcare-demo",
+      "name": "Healthcare Demo"
+    },
+    {
+      "id": "universal",
+      "name": "Universal"
+    },
+    {
+      "id": "august-2025",
+      "name": "August 2025"
+    }
+  ]
+}

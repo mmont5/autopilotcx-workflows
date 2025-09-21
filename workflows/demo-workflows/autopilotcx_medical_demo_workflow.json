@@ -1,0 +1,243 @@
+{
+  "name": "Medical Industry Demo Workflow (Virtuoso Enhanced, Full)",
+  "nodes": [
+    {
+      "parameters": { "path": "demo-intake", "responseMode": "responseNode", "options": {} },
+      "name": "Webhook - Request a Demo",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [100, 300]
+    },
+    {
+      "parameters": {
+        "operation": "extractData",
+        "url": "={{ $json.body.website }}",
+        "extractionType": "logo",
+        "options": { "depth": 2, "maxPages": 100, "respectRobots": true }
+      },
+      "name": "SiteEnricher",
+      "type": "autopilotcx-nodes.siteEnricher",
+      "typeVersion": 1,
+      "position": [300, 300]
+    },
+    {
+      "parameters": {
+        "operation": "analyzePractice",
+        "clientData": "={{ $json.body }}",
+        "extractedData": "={{ $json.extractedData }}",
+        "specialization": "={{ $json.body.specialization }}",
+        "analysisDepth": "comprehensive"
+      },
+      "name": "VirtuosoAgent",
+      "type": "autopilotcx-nodes.virtuosoAgent",
+      "typeVersion": 1,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "operation": "handleOnboarding",
+        "clientData": "={{ $json.body }}",
+        "extractedData": "={{ $json.extractedData }}",
+        "virtuosoInsights": "={{ $json.virtuosoAnalysis }}",
+        "specialization": "={{ $json.body.specialization }}"
+      },
+      "name": "PreludeNode",
+      "type": "autopilotcx-nodes.preludeAgent",
+      "typeVersion": 1,
+      "position": [700, 300]
+    },
+    {
+      "parameters": {
+        "operation": "performTriage",
+        "clientData": "={{ $json.body }}",
+        "extractedData": "={{ $json.extractedData }}",
+        "virtuosoInsights": "={{ $json.virtuosoAnalysis }}",
+        "specialization": "={{ $json.body.specialization }}"
+      },
+      "name": "OvertureNode",
+      "type": "autopilotcx-nodes.overtureAgent",
+      "typeVersion": 1,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "operation": "analyzeMedicalData",
+        "clientData": "={{ $json.body }}",
+        "extractedData": "={{ $json.extractedData }}",
+        "virtuosoInsights": "={{ $json.virtuosoAnalysis }}",
+        "specialization": "={{ $json.body.specialization }}"
+      },
+      "name": "ClinicalNode",
+      "type": "autopilotcx-nodes.clinicalAgent",
+      "typeVersion": 1,
+      "position": [1100, 300]
+    },
+    {
+      "parameters": {
+        "operation": "generateContent",
+        "contentType": "welcome",
+        "clientData": "={{ $json.body }}",
+        "extractedData": "={{ $json.extractedData }}",
+        "virtuosoInsights": "={{ $json.virtuosoAnalysis }}",
+        "tone": "professional",
+        "specialization": "={{ $json.body.specialization }}"
+      },
+      "name": "ComposerAgent",
+      "type": "autopilotcx-nodes.composerAgent",
+      "typeVersion": 1,
+      "position": [1300, 300]
+    },
+    {
+      "parameters": {
+        "operation": "handleInteraction",
+        "clientData": "={{ $json.body }}",
+        "extractedData": "={{ $json.extractedData }}",
+        "virtuosoInsights": "={{ $json.virtuosoAnalysis }}",
+        "specialization": "={{ $json.body.specialization }}"
+      },
+      "name": "VirtuosoAgent2",
+      "type": "autopilotcx-nodes.virtuosoAgent",
+      "typeVersion": 1,
+      "position": [1500, 300]
+    },
+    {
+      "parameters": {
+        "operation": "coordinateJourney",
+        "clientId": "={{ $json.body.clientId }}",
+        "journeyType": "medical_demo_onboarding",
+        "extractedData": "={{ $json.extractedData }}",
+        "virtuosoInsights": "={{ $json.virtuosoAnalysis }}",
+        "specialization": "={{ $json.body.specialization }}"
+      },
+      "name": "MaestroAgent",
+      "type": "autopilotcx-nodes.maestroAgent",
+      "typeVersion": 1,
+      "position": [1700, 300]
+    },
+    {
+      "parameters": {
+        "calendarId": "primary",
+        "start": "={{ $json.body.preferredDate }}",
+        "end": "={{ $json.body.preferredDate }}",
+        "summary": "Demo Appointment",
+        "description": "={{ $json.body.clientName }} - Medical Demo"
+      },
+      "name": "Google Calendar (Schedule)",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1,
+      "position": [1900, 300]
+    },
+    {
+      "parameters": {
+        "operation": "scheduleReminder",
+        "clientId": "={{ $json.body.clientId }}",
+        "extractedData": "={{ $json.extractedData }}",
+        "virtuosoInsights": "={{ $json.virtuosoAnalysis }}",
+        "specialization": "={{ $json.body.specialization }}"
+      },
+      "name": "ReminderNode",
+      "type": "autopilotcx-nodes.reminderAgent",
+      "typeVersion": 1,
+      "position": [300, 600]
+    },
+    {
+      "parameters": {
+        "operation": "handleReschedule",
+        "clientId": "={{ $json.body.clientId }}",
+        "extractedData": "={{ $json.extractedData }}",
+        "virtuosoInsights": "={{ $json.virtuosoAnalysis }}",
+        "specialization": "={{ $json.body.specialization }}"
+      },
+      "name": "RescheduleNode",
+      "type": "autopilotcx-nodes.rescheduleAgent",
+      "typeVersion": 1,
+      "position": [500, 600]
+    },
+    {
+      "parameters": {
+        "operation": "handleSupportRequest",
+        "clientId": "={{ $json.body.clientId }}",
+        "extractedData": "={{ $json.extractedData }}",
+        "virtuosoInsights": "={{ $json.virtuosoAnalysis }}",
+        "specialization": "={{ $json.body.specialization }}"
+      },
+      "name": "SupportAgent",
+      "type": "autopilotcx-nodes.supportAgent",
+      "typeVersion": 1,
+      "position": [700, 600]
+    },
+    {
+      "parameters": {
+        "operation": "handleHumanIntervention",
+        "clientId": "={{ $json.body.clientId }}",
+        "extractedData": "={{ $json.extractedData }}",
+        "virtuosoInsights": "={{ $json.virtuosoAnalysis }}",
+        "specialization": "={{ $json.body.specialization }}"
+      },
+      "name": "HumanAgent",
+      "type": "autopilotcx-nodes.humanAgent",
+      "typeVersion": 1,
+      "position": [900, 600]
+    },
+    {
+      "parameters": {
+        "operation": "collectFeedback",
+        "clientId": "={{ $json.body.clientId }}",
+        "extractedData": "={{ $json.extractedData }}",
+        "virtuosoInsights": "={{ $json.virtuosoAnalysis }}",
+        "specialization": "={{ $json.body.specialization }}"
+      },
+      "name": "FeedbackNode",
+      "type": "autopilotcx-nodes.feedbackAgent",
+      "typeVersion": 1,
+      "position": [1100, 600]
+    },
+    {
+      "parameters": {
+        "operation": "processMetrics",
+        "clientId": "={{ $json.body.clientId }}",
+        "extractedData": "={{ $json.extractedData }}",
+        "virtuosoInsights": "={{ $json.virtuosoAnalysis }}",
+        "specialization": "={{ $json.body.specialization }}"
+      },
+      "name": "AnalyticsProcessor",
+      "type": "autopilotcx-nodes.analyticsAgent",
+      "typeVersion": 1,
+      "position": [1300, 600]
+    },
+    {
+      "parameters": {
+        "operation": "translateContent",
+        "clientId": "={{ $json.body.clientId }}",
+        "extractedData": "={{ $json.extractedData }}",
+        "virtuosoInsights": "={{ $json.virtuosoAnalysis }}",
+        "specialization": "={{ $json.body.specialization }}",
+        "targetLanguage": "={{ $json.body.language || 'en' }}"
+      },
+      "name": "LanguageNode",
+      "type": "autopilotcx-nodes.languageAgent",
+      "typeVersion": 1,
+      "position": [1500, 600]
+    }
+  ],
+  "connections": {
+    "Webhook - Request a Demo": { "main": [[{"node": "SiteEnricher", "type": "main", "index": 0}]] },
+    "SiteEnricher": { "main": [[{"node": "VirtuosoAgent", "type": "main", "index": 0}]] },
+    "VirtuosoAgent": { "main": [[{"node": "PreludeNode", "type": "main", "index": 0}]] },
+    "PreludeNode": { "main": [[{"node": "OvertureNode", "type": "main", "index": 0}]] },
+    "OvertureNode": { "main": [[{"node": "ClinicalNode", "type": "main", "index": 0}]] },
+    "ClinicalNode": { "main": [[{"node": "ComposerAgent", "type": "main", "index": 0}]] },
+    "ComposerAgent": { "main": [[{"node": "VirtuosoAgent2", "type": "main", "index": 0}]] },
+    "VirtuosoAgent2": { "main": [[{"node": "MaestroAgent", "type": "main", "index": 0}]] },
+    "MaestroAgent": { "main": [[{"node": "Google Calendar (Schedule)", "type": "main", "index": 0}]] },
+    "Google Calendar (Schedule)": { "main": [
+      [{"node": "ReminderNode", "type": "main", "index": 0}],
+      [{"node": "RescheduleNode", "type": "main", "index": 0}],
+      [{"node": "SupportAgent", "type": "main", "index": 0}],
+      [{"node": "HumanAgent", "type": "main", "index": 0}],
+      [{"node": "FeedbackNode", "type": "main", "index": 0}],
+      [{"node": "AnalyticsProcessor", "type": "main", "index": 0}],
+      [{"node": "LanguageNode", "type": "main", "index": 0}]
+    ]}
+  }
+} 

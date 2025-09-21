@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:13
+    restart: always
+    environment:
+      POSTGRES_DB: n8n_autopilotcx
+      POSTGRES_USER: n8n_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-autopilotcx_secure_2025}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -h localhost -U n8n_user -d n8n_autopilotcx']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  n8n:
+    image: n8nio/n8n:latest
+    restart: always
+    environment:
+      # Database Configuration
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: n8n_autopilotcx
+      DB_POSTGRESDB_USER: n8n_user
+      DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD:-autopilotcx_secure_2025}
+
+      # N8N Configuration
+      N8N_BASIC_AUTH_ACTIVE: true
+      N8N_BASIC_AUTH_USER: ${N8N_BASIC_AUTH_USER:-admin}
+      N8N_BASIC_AUTH_PASSWORD: ${N8N_BASIC_AUTH_PASSWORD:-autopilotcx2025}
+
+      # URLs and Webhooks
+      WEBHOOK_URL: ${WEBHOOK_URL:-https://cx.autopilotcx.app}
+      N8N_HOST: ${N8N_HOST:-cx.autopilotcx.app}
+      N8N_PORT: 5678
+      N8N_PROTOCOL: https
+
+      # Security
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:-autopilotcx_encryption_key_2025}
+
+      # Generic OAuth App
+      N8N_USER_MANAGEMENT_JWT_SECRET: ${N8N_JWT_SECRET:-autopilotcx_jwt_secret_2025}
+
+      # AI Integration
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+
+      # AutopilotCX Specific
+      AUTOPILOTCX_ADMIN_URL: ${AUTOPILOTCX_ADMIN_URL:-https://app.autopilotcx.app}
+      AUTOPILOTCX_DEMO_URL: ${AUTOPILOTCX_DEMO_URL:-https://clientdemo.me}
+
+    ports:
+      - "5678:5678"
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./workflows:/home/node/.n8n/workflows
+      - ./credentials:/home/node/.n8n/credentials
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:5678/healthz || exit 1']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  postgres_data:
+  n8n_data:

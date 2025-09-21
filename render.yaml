@@ -1,0 +1,88 @@
+services:
+  # PostgreSQL Database
+  - type: pserv
+    name: n8n-postgres
+    env: docker
+    plan: starter
+    dockerfilePath: ./database/Dockerfile
+    envVars:
+      - key: POSTGRES_DB
+        value: n8n_autopilotcx
+      - key: POSTGRES_USER
+        value: n8n_user
+      - key: POSTGRES_PASSWORD
+        generateValue: true
+    disk:
+      name: postgres-data
+      mountPath: /var/lib/postgresql/data
+      sizeGB: 10
+
+  # N8N Application
+  - type: web
+    name: n8n-autopilotcx
+    env: docker
+    plan: standard
+    dockerfilePath: ./Dockerfile
+    buildCommand: echo "Using official N8N image"
+    startCommand: n8n
+    envVars:
+      # Database Configuration
+      - key: DB_TYPE
+        value: postgresdb
+      - key: DB_POSTGRESDB_HOST
+        fromService:
+          type: pserv
+          name: n8n-postgres
+          property: host
+      - key: DB_POSTGRESDB_PORT
+        value: 5432
+      - key: DB_POSTGRESDB_DATABASE
+        value: n8n_autopilotcx
+      - key: DB_POSTGRESDB_USER
+        value: n8n_user
+      - key: DB_POSTGRESDB_PASSWORD
+        fromService:
+          type: pserv
+          name: n8n-postgres
+          envVarKey: POSTGRES_PASSWORD
+
+      # N8N Configuration
+      - key: N8N_BASIC_AUTH_ACTIVE
+        value: true
+      - key: N8N_BASIC_AUTH_USER
+        value: admin
+      - key: N8N_BASIC_AUTH_PASSWORD
+        sync: false
+      - key: WEBHOOK_URL
+        value: https://cx.autopilotcx.app
+      - key: N8N_HOST
+        value: cx.autopilotcx.app
+      - key: N8N_PORT
+        value: 5678
+      - key: N8N_PROTOCOL
+        value: https
+
+      # Security
+      - key: N8N_ENCRYPTION_KEY
+        generateValue: true
+      - key: N8N_USER_MANAGEMENT_JWT_SECRET
+        generateValue: true
+
+      # AI API Keys
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+
+      # AutopilotCX URLs
+      - key: AUTOPILOTCX_ADMIN_URL
+        value: https://app.autopilotcx.app
+      - key: AUTOPILOTCX_DEMO_URL
+        value: https://clientdemo.me
+
+    routes:
+      - type: redirect
+        source: /*
+        destination: https://cx.autopilotcx.app/$1

@@ -1,0 +1,229 @@
+{
+  "name": "Healthcare-Demo-Workflow-Backup-August-19-2025",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "demo-creation-webhook",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [-1000, 100],
+      "id": "demo-creation-webhook",
+      "name": "Demo Creation Webhook"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "demo-chat-universal",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [-1000, 300],
+      "id": "chat-webhook",
+      "name": "Chat Webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Demo Creation Handler - Prepare data for shared storage\nconst input = $input.first().json;\n\nconsole.log('🎯 Demo Creation Handler - Input:', JSON.stringify(input, null, 2));\n\n// Extract demo context from the webhook payload\n// Webhook data is nested under input.body\nconst webhookBody = input.body || {};\nconst demoContext = webhookBody.demoContext || {};\nconst demoId = webhookBody.demoId || webhookBody.demo_id || '';\n\nconsole.log('🎯 Webhook Body:', JSON.stringify(webhookBody, null, 2));\nconsole.log('🎯 Demo ID from body:', demoId);\nconsole.log('🎯 Demo Context from body:', JSON.stringify(demoContext, null, 2));\n\nif (!demoId) {\n  console.log('❌ No demo ID provided');\n  return [{\n    \"json\": {\n      \"success\": false,\n      \"error\": \"No demo ID provided\",\n      \"timestamp\": new Date().toISOString()\n    },\n    \"pairedItem\": 0\n  }];\n}\n\nif (!demoContext.companyName) {\n  console.log('❌ No demo context provided');\n  return [{\n    \"json\": {\n      \"success\": false,\n      \"error\": \"No demo context provided\",\n      \"timestamp\": new Date().toISOString()\n    },\n    \"pairedItem\": 0\n  }];\n}\n\nconsole.log('✅ Demo creation data prepared for storage:');\nconsole.log('🏢 Company:', demoContext.companyName);\nconsole.log('👤 Agent:', demoContext.agentName);\nconsole.log('🆔 Demo ID:', demoId);\n\n// Prepare data for shared storage\nreturn [{\n  \"json\": {\n    \"operation\": \"store\",\n    \"demoId\": demoId,\n    \"demoContext\": demoContext,\n    \"timestamp\": new Date().toISOString()\n  },\n  \"pairedItem\": 0\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-900, 100],
+      "id": "demo-creation-handler",
+      "name": "Demo Creation Handler"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Chat Handler - Prepare data for shared storage retrieval\nconst input = $input.first().json;\n\nconsole.log('💬 Chat Handler - Input:', JSON.stringify(input, null, 2));\n\n// Extract chat data from the webhook payload\nconst message = input.body?.message || '';\nconst demoId = input.body?.demoId || input.body?.demo_id || '';\nconst currentState = input.body?.currentState || 'initial';\nconst collectedData = input.body?.collectedData || {};\nconst bookingState = input.body?.bookingState || '';\nconst bookingData = input.body?.bookingData || {};\n\nconsole.log('💬 Extracted data:');\nconsole.log('💬 Message:', message);\nconsole.log('🆔 Demo ID:', demoId);\nconsole.log('🔄 Current State:', currentState);\nconsole.log('📊 Collected Data:', Object.keys(collectedData));\nconsole.log('📅 Booking State:', bookingState);\nconsole.log('📋 Booking Data:', Object.keys(bookingData));\n\nif (!demoId) {\n  console.log('❌ No demo ID provided for chat');\n  return [{\n    \"json\": {\n      \"success\": false,\n      \"error\": \"No demo ID provided\",\n      \"message\": message\n    },\n    \"pairedItem\": 0\n  }];\n}\n\n// Prepare data for shared storage retrieval\nreturn [{\n  \"json\": {\n    \"operation\": \"get\",\n    \"demoId\": demoId,\n    \"message\": message,\n    \"currentState\": currentState,\n    \"collectedData\": collectedData,\n    \"bookingState\": bookingState,\n    \"bookingData\": bookingData,\n    \"timestamp\": new Date().toISOString()\n  },\n  \"pairedItem\": 0\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-900, 300],
+      "id": "chat-handler",
+      "name": "Chat Handler"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Shared Context Storage - Universal storage for ANY demo context\nconst input = $input.first().json;\nconst operation = input.operation || 'get';\nconst demoId = input.demoId || input.demo_id || '';\nconst demoContext = input.demoContext || {};\nconst message = input.message || '';\nconst currentState = input.currentState || 'initial';\nconst collectedData = input.collectedData || {};\nconst bookingState = input.bookingState || '';\nconst bookingData = input.bookingData || {};\n\nconsole.log('🏪 Shared Context Storage - Operation:', operation);\nconsole.log('🏪 Demo ID:', demoId);\n\n// In-memory storage (resets on N8N restart)\nif (!global.demoContextStorage) {\n  global.demoContextStorage = new Map();\n}\n\nif (operation === 'store') {\n  // Store demo context\n  if (!demoId) {\n    console.log('❌ No demo ID provided for storage');\n    return [{\n      \"json\": {\n        \"success\": false,\n        \"error\": \"No demo ID provided\",\n        \"timestamp\": new Date().toISOString()\n      },\n      \"pairedItem\": 0\n    }];\n  }\n  \n  if (!demoContext.companyName) {\n    console.log('❌ No demo context provided for storage');\n    return [{\n      \"json\": {\n        \"success\": false,\n        \"error\": \"No demo context provided\",\n        \"timestamp\": new Date().toISOString()\n      },\n      \"pairedItem\": 0\n    }];\n  }\n  \n  // Store the context\n  global.demoContextStorage.set(demoId, {\n    demoContext: demoContext,\n    storedAt: new Date().toISOString(),\n    lastAccessed: new Date().toISOString()\n  });\n  \n  console.log('💾 Stored demo context for demo ID:', demoId);\n  console.log('🏢 Company:', demoContext.companyName);\n  console.log('👤 Agent:', demoContext.agentName);\n  \n  return [{\n    \"json\": {\n      \"success\": true,\n      \"operation\": \"store\",\n      \"demoId\": demoId,\n      \"storedAt\": new Date().toISOString(),\n      \"message\": \"Demo context stored successfully\"\n    },\n    \"pairedItem\": 0\n  }];\n  \n} else if (operation === 'get') {\n  // Retrieve demo context\n  if (!demoId) {\n    console.log('❌ No demo ID provided for retrieval');\n    return [{\n      \"json\": {\n        \"success\": false,\n        \"error\": \"No demo ID provided\",\n        \"message\": message,\n        \"demoContext\": null\n      },\n      \"pairedItem\": 0\n    }];\n  }\n  \n  // Try to get from shared storage first\n  const storedData = global.demoContextStorage.get(demoId);\n  \n  if (storedData && storedData.demoContext) {\n    // Update last accessed time\n    storedData.lastAccessed = new Date().toISOString();\n    global.demoContextStorage.set(demoId, storedData);\n    \n    console.log('✅ Retrieved demo context from shared storage for demo ID:', demoId);\n    console.log('🏢 Company:', storedData.demoContext.companyName);\n    console.log('👤 Agent:', storedData.demoContext.agentName);\n    \n    return [{\n      \"json\": {\n        \"success\": true,\n        \"operation\": \"get\",\n        \"demoId\": demoId,\n        \"message\": message,\n        \"demoContext\": storedData.demoContext,\n        \"currentState\": currentState,\n        \"collectedData\": collectedData,\n        \"bookingState\": bookingState,\n        \"bookingData\": bookingData,\n        \"retrievedAt\": new Date().toISOString(),\n        \"source\": \"shared_storage\"\n      },\n      \"pairedItem\": 0\n    }];\n  }\n  \n  // NO HARDCODED FALLBACKS - This should never happen in production\n  // If we get here, it means the demo context was never stored\n  console.log('❌ CRITICAL ERROR: Demo context not found for demo ID:', demoId);\n  console.log('❌ This means the demo creation webhook never fired or failed');\n  \n  return [{\n    \"json\": {\n      \"success\": false,\n      \"error\": \"Demo context not found. Demo creation webhook may have failed.\",\n      \"message\": message,\n      \"demoContext\": null,\n      \"currentState\": currentState,\n      \"collectedData\": collectedData,\n      \"bookingState\": bookingState,\n      \"bookingData\": bookingData,\n      \"timestamp\": new Date().toISOString(),\n      \"source\": \"error\"\n    },\n    \"pairedItem\": 0\n  }];\n}\n\n// Invalid operation\nconsole.log('❌ Invalid operation:', operation);\nreturn [{\n  \"json\": {\n    \"success\": false,\n    \"error\": \"Invalid operation. Use \\\"store\\\" or \\\"get\\\"\",\n    \"timestamp\": new Date().toISOString()\n  },\n  \"pairedItem\": 0\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-800, 500],
+      "id": "shared-context-storage",
+      "name": "Shared Context Storage"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "rules": [
+            {
+              "leftValue": "={{ $json.operation }}",
+              "rightValue": "store",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "leftValue": "={{ $json.operation }}",
+              "rightValue": "get",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "fallbackOutput": 0
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [-600, 500],
+      "id": "switch",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Complete State Manager with Demo Context\nconst input = $input.first().json;\nconst message = input.message || '';\nconst demoContext = input.demoContext || {};\n\n// Get current state from input or default to initial\nlet currentState = input.currentState || 'initial';\nlet collectedData = input.collectedData || {};\nlet bookingState = input.bookingState || '';\nlet bookingData = input.bookingData || {};\n\n// CRITICAL FIX: Don't override currentState with bookingState\n// The currentState should be preserved from the conversation flow\n// Only use bookingState as a fallback if currentState is missing\n\n// Merge collectedData with bookingData if available\nif (bookingData && Object.keys(bookingData).length > 0) {\n  collectedData = { ...collectedData, ...bookingData };\n}\n\nconsole.log('🔧 Input received:', JSON.stringify(input, null, 2));\nconsole.log('🔧 Current State:', currentState);\nconsole.log('🔧 Message:', message);\nconsole.log('🔧 Demo Context:', demoContext.companyName);\nconsole.log('🔧 Collected Data:', collectedData);\nconsole.log('🔧 Booking State:', bookingState);\nconsole.log('🔧 Booking Data:', bookingData);\n\n// Simple state machine with demo context\nlet response = '';\nlet nextState = currentState;\nlet highlightedText = '';\n\nswitch (currentState) {\n  case 'initial':\n    if (message.toLowerCase().includes('appointment') || message.toLowerCase().includes('book') || message.toLowerCase().includes('schedule')) {\n      response = `I'd be happy to help you schedule an appointment at ${demoContext.companyName}! Are you a new patient or an existing patient?`;\n      nextState = 'waiting_for_patient_type';\n      highlightedText = 'new patient or an existing patient';\n    } else {\n      response = `Hello! I'm ${demoContext.agentName} from ${demoContext.companyName}. I'm here to help. Would you like to schedule an appointment?`;\n      nextState = 'initial';\n    }\n    break;\n    \n  case 'waiting_for_patient_type':\n    if (message.toLowerCase().includes('new')) {\n      response = `Great! I'll need some information to schedule your appointment. What is your First Name and Last Name?`;\n      nextState = 'waiting_for_name';\n      highlightedText = 'First Name and Last Name';\n    } else if (message.toLowerCase().includes('existing')) {\n      response = `Welcome back! I'll need some information to schedule your appointment. What is your First Name and Last Name?`;\n      nextState = 'waiting_for_name';\n      highlightedText = 'First Name and Last Name';\n    } else {\n      response = `Please let me know if you're a new patient or an existing patient.`;\n      nextState = 'waiting_for_patient_type';\n    }\n    break;\n    \n  case 'waiting_for_name':\n    const nameMatch = message.match(/^([A-Za-z]+)\\s+([A-Za-z]+)$/);\n    if (nameMatch) {\n      collectedData.firstName = nameMatch[1];\n      collectedData.lastName = nameMatch[2];\n      response = `Thank you ${collectedData.firstName}! What is your Date of Birth?`;\n      nextState = 'waiting_for_dob';\n      highlightedText = 'Date of Birth';\n    } else {\n      response = `Please provide your First Name and Last Name (e.g., John Smith).`;\n      nextState = 'waiting_for_name';\n    }\n    break;\n    \n  case 'waiting_for_dob':\n    collectedData.dateOfBirth = message;\n    response = `Thank you! What is your phone number?`;\n      nextState = 'waiting_for_phone';\n      highlightedText = 'phone number';\n    break;\n    \n  case 'waiting_for_phone':\n    collectedData.phone = message;\n    response = `Great! What is your email address?`;\n      nextState = 'waiting_for_email';\n      highlightedText = 'email address';\n    break;\n    \n  case 'waiting_for_email':\n    collectedData.email = message;\n    response = `Perfect! Which location is more convenient for you?\\n\\n${demoContext.locations.map((loc, index) => `${index + 1}. ${loc}`).join('\\n')}`;\n      nextState = 'waiting_for_location';\n      highlightedText = 'location';\n    break;\n    \n  case 'waiting_for_location':\n    collectedData.location = message;\n    response = `Excellent! What is your pain level from 1 to 10?`;\n      nextState = 'waiting_for_pain_level';\n      highlightedText = 'pain level from 1 to 10';\n    break;\n    \n  case 'waiting_for_pain_level':\n    collectedData.painLevel = message;\n    response = `Thank you. What symptoms are you experiencing?`;\n      nextState = 'waiting_for_symptoms';\n      highlightedText = 'symptoms';\n    break;\n    \n  case 'waiting_for_symptoms':\n    collectedData.symptoms = message;\n    response = `What procedure are you interested in?\\n\\n${demoContext.services.map((service, index) => `${index + 1}. ${service}`).join('\\n')}`;\n      nextState = 'waiting_for_procedure';\n      highlightedText = 'procedure';\n    break;\n    \n  case 'waiting_for_procedure':\n    collectedData.procedure = message;\n    response = `What insurance do you have?\\n\\n${demoContext.insuranceProviders.map((provider, index) => `${index + 1}. ${provider}`).join('\\n')}\\n\\nNote: We do not accept Medicare or Medicaid.`;\n      nextState = 'waiting_for_insurance';\n      highlightedText = 'insurance';\n    break;\n    \n  case 'waiting_for_insurance':\n    collectedData.insurance = message;\n    response = `Thank you for providing all the information! I have collected:\\n\\n` +\n               `Name: ${collectedData.firstName} ${collectedData.lastName}\\n` +\n               `Date of Birth: ${collectedData.dateOfBirth}\\n` +\n               `Phone: ${collectedData.phone}\\n` +\n               `Email: ${collectedData.email}\\n` +\n               `Location: ${collectedData.location}\\n` +\n               `Pain Level: ${collectedData.painLevel}\\n` +\n               `Symptoms: ${collectedData.symptoms}\\n` +\n               `Procedure: ${collectedData.procedure}\\n` +\n               `Insurance: ${collectedData.insurance}\\n\\n` +\n               `Is there anything else you'd like to add?`;\n      nextState = 'complete';\n    break;\n    \n  default:\n    response = `I'm ${demoContext.agentName} from ${demoContext.companyName}. I'm here to help you schedule an appointment. Would you like to start?`;\n      nextState = 'initial';\n    break;\n}\n\nconsole.log('🔧 Next State:', nextState);\nconsole.log('🔧 Response:', response);\nconsole.log('🔧 Final Collected Data:', collectedData);\n\nreturn [{\n  \"json\": {\n    \"message\": response,\n    \"currentState\": nextState,\n    \"collectedData\": collectedData,\n    \"highlightedText\": highlightedText,\n    \"demoContext\": demoContext,\n    // Also return bookingState and bookingData for compatibility\n    \"bookingState\": nextState,\n    \"bookingData\": collectedData,\n    \"timestamp\": new Date().toISOString()\n  },\n  \"pairedItem\": 0\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-200, 400],
+      "id": "complete-state-manager",
+      "name": "Complete State Manager"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [-400, 200],
+      "id": "demo-creation-response",
+      "name": "Demo Creation Response"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [0, 400],
+      "id": "chat-response",
+      "name": "Chat Response"
+    }
+  ],
+  "connections": {
+    "Demo Creation Webhook": {
+      "main": [
+        [
+          {
+            "node": "Demo Creation Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chat Webhook": {
+      "main": [
+        [
+          {
+            "node": "Chat Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Demo Creation Handler": {
+      "main": [
+        [
+          {
+            "node": "Shared Context Storage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chat Handler": {
+      "main": [
+        [
+          {
+            "node": "Shared Context Storage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shared Context Storage": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Demo Creation Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Complete State Manager",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Demo Creation Response": {
+      "main": []
+    },
+    "Complete State Manager": {
+      "main": [
+        [
+          {
+            "node": "Chat Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Demo Creation Response": {
+      "main": [
+        [
+          {
+            "node": "Complete State Manager",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {},
+  "versionId": "1"
+}

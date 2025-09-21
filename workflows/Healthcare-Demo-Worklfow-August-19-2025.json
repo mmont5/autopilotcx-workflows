@@ -1,0 +1,290 @@
+{
+  "name": "Healthcare-Demo-Worklfow-August-19-2025",
+  "nodes": [
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        -16
+      ],
+      "id": "eec832fb-71cd-4bdd-b134-07f0ec58a5d2",
+      "name": "Chat Response"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        576,
+        -208
+      ],
+      "id": "b561ff36-1130-4178-a09d-e77450db8435",
+      "name": "Demo Creation Response"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Complete State Manager - PERMANENT SOLUTION\nconst input = $input.first().json;\nconst message = input.message || '';\nlet demoContext = input.demoContext || {};\n\n// Get current state from input or default to initial\nlet currentState = input.currentState || 'initial';\nlet collectedData = input.collectedData || {};\nlet bookingState = input.bookingState || '';\nlet bookingData = input.bookingData || {};\n\n// PERMANENT SOLUTION: Use demo context directly from input\nif (input.demoContext && input.demoContext.companyName) {\n  demoContext = input.demoContext;\n  console.log(' Using demo context from input:', demoContext.companyName);\n  console.log(' Agent Name:', demoContext.agentName);\n} else {\n  console.log('❌ No demo context found in input');\n}\n\n// Merge collectedData with bookingData if available\nif (bookingData && Object.keys(bookingData).length > 0) {\n  collectedData = { ...collectedData, ...bookingData };\n}\n\nconsole.log('🔧 Input received:', JSON.stringify(input, null, 2));\nconsole.log('🔧 Current State:', currentState);\nconsole.log(' Message:', message);\nconsole.log('🔧 Demo Context:', demoContext.companyName);\nconsole.log(' Agent Name:', demoContext.agentName);\nconsole.log('🔧 Collected Data:', collectedData);\nconsole.log('🔧 Booking State:', bookingState);\nconsole.log('🔧 Booking Data:', bookingData);\n\n// Helper function to get random response from array\nfunction getRandomResponse(responses) {\n  const randomIndex = Math.floor(Math.random() * responses.length);\n  return responses[randomIndex];\n}\n\n// Simple state machine with demo context\nlet response = '';\nlet nextState = currentState;\nlet highlightedText = '';\nlet quickActions = [];\n\nswitch (currentState) {\n  case 'initial':\n    if (message.toLowerCase().includes('appointment') || message.toLowerCase().includes('book') || message.toLowerCase().includes('schedule')) {\n      const greetings = [\n        `Absolutely! I'm ${demoContext.agentName} from ${demoContext.companyName}, and I'd be happy to help you schedule your appointment. I'm here to make this process as smooth and comfortable as possible for you. Are you a new patient or an existing patient?`,\n        `Of course! I'd love to help you get your appointment scheduled. I'm ${demoContext.agentName} from ${demoContext.companyName}, and I'm here to take care of everything for you. Are you a new patient or an existing patient?`,\n        `Wonderful! I'm so glad you reached out. I'm ${demoContext.agentName} from ${demoContext.companyName}, and I'm here to help you get your appointment scheduled right away. Are you a new patient or an existing patient?`,\n        `I'm delighted to help you schedule your appointment! I'm ${demoContext.agentName} from ${demoContext.companyName}, and I'm here to make sure you get the care you need. Are you a new patient or an existing patient?`,\n        `Absolutely! Let's get your appointment scheduled. I'm ${demoContext.agentName} from ${demoContext.companyName}, and I'm here to help you every step of the way. Are you a new patient or an existing patient?`,\n        `Perfect! I'm excited to help you schedule your appointment. I'm ${demoContext.agentName} from ${demoContext.companyName}, and I'm here to make this booking process simple and stress-free. Are you a new patient or an existing patient?`,\n        `Excellent! I'd be honored to help you schedule your appointment. I'm ${demoContext.agentName} from ${demoContext.companyName}, and I'm here to ensure you get the care you deserve. Are you a new patient or an existing patient?`,\n        `Fantastic! I'm here to help you schedule your appointment. I'm ${demoContext.agentName} from ${demoContext.companyName}, and I'm committed to making this process as easy as possible for you. Are you a new patient or an existing patient?`,\n        `Great! I'm thrilled to assist you with scheduling your appointment. I'm ${demoContext.agentName} from ${demoContext.companyName}, and I'm here to guide you through every step. Are you a new patient or an existing patient?`,\n        `Wonderful! I'm here to help you schedule your appointment. I'm ${demoContext.agentName} from ${demoContext.companyName}, and I'm dedicated to making this experience smooth and comfortable for you. Are you a new patient or an existing patient?`\n      ];\n      \n      response = getRandomResponse(greetings);\n      nextState = 'waiting_for_patient_type';\n      highlightedText = 'new patient or an existing patient';\n      quickActions = [\n        { text: 'New Patient', action: 'new' },\n        { text: 'Existing Patient', action: 'existing' }\n      ];\n    } else {\n      const welcomeMessages = [\n        `Hello! I'm ${demoContext.agentName} from ${demoContext.companyName}. I'm here to help. Would you like to schedule an appointment?`,\n        `Hi there! I'm ${demoContext.agentName} from ${demoContext.companyName}. How can I assist you today? Would you like to schedule an appointment?`,\n        `Good day! I'm ${demoContext.agentName} from ${demoContext.companyName}. I'm here to help. Is there an appointment you'd like to schedule?`,\n        `Welcome! I'm ${demoContext.agentName} from ${demoContext.companyName}. How may I help you today? Would you like to book an appointment?`,\n        `Greetings! I'm ${demoContext.agentName} from ${demoContext.companyName}. I'm here to assist you. Are you looking to schedule an appointment?`,\n        `Hello and welcome! I'm ${demoContext.agentName} from ${demoContext.companyName}. How can I help you today? Would you like to make an appointment?`,\n        `Hi! I'm ${demoContext.agentName} from ${demoContext.companyName}. I'm here to support you. Is scheduling an appointment what you need?`,\n        `Good to see you! I'm ${demoContext.agentName} from ${demoContext.companyName}. How may I be of service? Would you like to schedule an appointment?`,\n        `Welcome! I'm ${demoContext.agentName} from ${demoContext.companyName}. I'm here to help. Are you interested in booking an appointment?`,\n        `Hello there! I'm ${demoContext.agentName} from ${demoContext.companyName}. How can I assist you today? Would you like to schedule an appointment?`\n      ];\n      \n      response = getRandomResponse(welcomeMessages);\n      nextState = 'initial';\n      quickActions = [\n        { text: 'Schedule Appointment', action: 'schedule' }\n      ];\n    }\n    break;\n    \n  case 'waiting_for_patient_type':\n    if (message.toLowerCase().includes('new') || message.toLowerCase().includes('new patient')) {\n      const newPatientResponses = [\n        `Great! I'll need some information to schedule your appointment. What is your First Name and Last Name?`,\n        `Excellent! To get your appointment scheduled, I'll need a few details. What is your First Name and Last Name?`,\n        `Perfect! Let me gather some information to book your appointment. What is your First Name and Last Name?`,\n        `Wonderful! I'll need some basic information to schedule your visit. What is your First Name and Last Name?`,\n        `Fantastic! To set up your appointment, I need a few details. What is your First Name and Last Name?`,\n        `Great choice! I'll need some information to get your appointment booked. What is your First Name and Last Name?`,\n        `Excellent! Let me collect some details to schedule your appointment. What is your First Name and Last Name?`,\n        `Perfect! I'll need some information to book your visit. What is your First Name and Last Name?`,\n        `Wonderful! To schedule your appointment, I need a few details. What is your First Name and Last Name?`,\n        `Great! Let me gather some information to set up your appointment. What is your First Name and Last Name?`\n      ];\n      \n      response = getRandomResponse(newPatientResponses);\n      nextState = 'waiting_for_name';\n      highlightedText = 'First Name and Last Name';\n      quickActions = [];\n    } else if (message.toLowerCase().includes('existing') || message.toLowerCase().includes('existing patient')) {\n      const existingPatientResponses = [\n        `Welcome back! I'll need some information to schedule your appointment. What is your First Name and Last Name?`,\n        `Great to see you again! To schedule your appointment, I need a few details. What is your First Name and Last Name?`,\n        `Welcome back! I'll need some information to book your visit. What is your First Name and Last Name?`,\n        `So glad you're returning! To schedule your appointment, I need some details. What is your First Name and Last Name?`,\n        `Welcome back! I'll need a few details to schedule your appointment. What is your First Name and Last Name?`,\n        `Great to have you back! To book your appointment, I need some information. What is your First Name and Last Name?`,\n        `Welcome back! I'll need some details to schedule your visit. What is your First Name and Last Name?`,\n        `So happy you're returning! To schedule your appointment, I need some information. What is your First Name and Last Name?`,\n        `Welcome back! I'll need a few details to book your appointment. What is your First Name and Last Name?`,\n        `Great to see you again! To schedule your appointment, I need some details. What is your First Name and Last Name?`\n      ];\n      \n      response = getRandomResponse(existingPatientResponses);\n      nextState = 'waiting_for_name';\n      highlightedText = 'First Name and Last Name';\n      quickActions = [];\n    } else {\n      const clarificationResponses = [\n        `Please let me know if you're a new patient or an existing patient.`,\n        `Could you clarify whether you're a new patient or an existing patient?`,\n        `I need to know if you're a new patient or an existing patient.`,\n        `Please specify if you're a new patient or an existing patient.`,\n        `Could you tell me if you're a new patient or an existing patient?`,\n        `I'd like to know if you're a new patient or an existing patient.`,\n        `Please indicate whether you're a new patient or an existing patient.`,\n        `Could you clarify if you're a new patient or an existing patient?`,\n        `I need to know whether you're a new patient or an existing patient.`,\n        `Please specify whether you're a new patient or an existing patient.`\n      ];\n      \n      response = getRandomResponse(clarificationResponses);\n      nextState = 'waiting_for_patient_type';\n      quickActions = [\n        { text: 'New Patient', action: 'new' },\n        { text: 'Existing Patient', action: 'existing' }\n      ];\n    }\n    break;\n    \n  case 'waiting_for_name':\n    const nameMatch = message.match(/^([A-Za-z]+)\\s+([A-Za-z]+)$/);\n    if (nameMatch) {\n      collectedData.firstName = nameMatch[1];\n      collectedData.lastName = nameMatch[2];\n      \n      const dobResponses = [\n        `Thank you ${collectedData.firstName}! What is your Date of Birth?`,\n        `Perfect ${collectedData.firstName}! What is your Date of Birth?`,\n        `Great ${collectedData.firstName}! What is your Date of Birth?`,\n        `Excellent ${collectedData.firstName}! What is your Date of Birth?`,\n        `Wonderful ${collectedData.firstName}! What is your Date of Birth?`,\n        `Fantastic ${collectedData.firstName}! What is your Date of Birth?`,\n        `Thanks ${collectedData.firstName}! What is your Date of Birth?`,\n        `Perfect ${collectedData.firstName}! What is your Date of Birth?`,\n        `Great ${collectedData.firstName}! What is your Date of Birth?`,\n        `Excellent ${collectedData.firstName}! What is your Date of Birth?`\n      ];\n      \n      response = getRandomResponse(dobResponses);\n      nextState = 'waiting_for_dob';\n      highlightedText = 'Date of Birth';\n      quickActions = [];\n    } else {\n      const nameClarificationResponses = [\n        `Please provide your First Name and Last Name (e.g., John Smith).`,\n        `Could you give me your First Name and Last Name (e.g., John Smith)?`,\n        `I need your First Name and Last Name (e.g., John Smith).`,\n        `Please share your First Name and Last Name (e.g., John Smith).`,\n        `Could you provide your First Name and Last Name (e.g., John Smith)?`,\n        `I'd like your First Name and Last Name (e.g., John Smith).`,\n        `Please give me your First Name and Last Name (e.g., John Smith).`,\n        `Could you share your First Name and Last Name (e.g., John Smith)?`,\n        `I need your First Name and Last Name (e.g., John Smith).`,\n        `Please provide your First Name and Last Name (e.g., John Smith).`\n      ];\n      \n      response = getRandomResponse(nameClarificationResponses);\n      nextState = 'waiting_for_name';\n      quickActions = [];\n    }\n    break;\n    \n  case 'waiting_for_dob':\n    collectedData.dateOfBirth = message;\n    \n    const phoneResponses = [\n      `Thank you! What is your phone number?`,\n      `Perfect! What is your phone number?`,\n      `Great! What is your phone number?`,\n      `Excellent! What is your phone number?`,\n      `Wonderful! What is your phone number?`,\n      `Fantastic! What is your phone number?`,\n      `Thanks! What is your phone number?`,\n      `Perfect! What is your phone number?`,\n      `Great! What is your phone number?`,\n      `Excellent! What is your phone number?`\n    ];\n    \n    response = getRandomResponse(phoneResponses);\n    nextState = 'waiting_for_phone';\n    highlightedText = 'phone number';\n    quickActions = [];\n    break;\n    \n  case 'waiting_for_phone':\n    collectedData.phone = message;\n    \n    const emailResponses = [\n      `Great! What is your email address?`,\n      `Perfect! What is your email address?`,\n      `Excellent! What is your email address?`,\n      `Wonderful! What is your email address?`,\n      `Fantastic! What is your email address?`,\n      `Great! What is your email address?`,\n      `Perfect! What is your email address?`,\n      `Excellent! What is your email address?`,\n      `Wonderful! What is your email address?`,\n      `Fantastic! What is your email address?`\n    ];\n    \n    response = getRandomResponse(emailResponses);\n    nextState = 'waiting_for_email';\n    highlightedText = 'email address';\n    quickActions = [];\n    break;\n    \n  case 'waiting_for_email':\n    collectedData.email = message;\n    \n    // Handle missing or empty locations array\n    const locations = demoContext.locations && demoContext.locations.length > 0 \n      ? demoContext.locations.map((loc, index) => `${index + 1}. ${loc.city || loc}`).join('\\n')\n      : '1. Main Location';\n    \n    const locationResponses = [\n      `Perfect! Which location is more convenient for you?\\n\\n${locations}`,\n      `Great! Which location works best for you?\\n\\n${locations}`,\n      `Excellent! Which location would you prefer?\\n\\n${locations}`,\n      `Wonderful! Which location is most convenient for you?\\n\\n${locations}`,\n      `Fantastic! Which location suits you best?\\n\\n${locations}`,\n      `Perfect! Which location would work best for you?\\n\\n${locations}`,\n      `Great! Which location is most convenient?\\n\\n${locations}`,\n      `Excellent! Which location would you prefer?\\n\\n${locations}`,\n      `Wonderful! Which location works best for you?\\n\\n${locations}`,\n      `Fantastic! Which location is most convenient?\\n\\n${locations}`\n    ];\n    \n    response = getRandomResponse(locationResponses);\n    nextState = 'waiting_for_location';\n    highlightedText = 'location';\n    quickActions = demoContext.locations && demoContext.locations.length > 0 \n      ? demoContext.locations.map((loc, index) => ({\n          text: loc.city || loc,\n          action: loc.city || loc\n        }))\n      : [{ text: 'Main Location', action: 'Main Location' }];\n    break;\n    \n  case 'waiting_for_location':\n    collectedData.location = message;\n    \n    const painLevelResponses = [\n      `Excellent! What is your pain level from 1 to 10?`,\n      `Great! What is your pain level from 1 to 10?`,\n      `Perfect! What is your pain level from 1 to 10?`,\n      `Wonderful! What is your pain level from 1 to 10?`,\n      `Fantastic! What is your pain level from 1 to 10?`,\n      `Excellent! What is your pain level from 1 to 10?`,\n      `Great! What is your pain level from 1 to 10?`,\n      `Perfect! What is your pain level from 1 to 10?`,\n      `Wonderful! What is your pain level from 1 to 10?`,\n      `Fantastic! What is your pain level from 1 to 10?`\n    ];\n    \n    response = getRandomResponse(painLevelResponses);\n    nextState = 'waiting_for_pain_level';\n    highlightedText = 'pain level from 1 to 10';\n    quickActions = Array.from({length: 10}, (_, i) => ({\n      text: `${i + 1}`,\n      action: `${i + 1}`\n    }));\n    break;\n    \n  case 'waiting_for_pain_level':\n    collectedData.painLevel = message;\n    \n    const symptomsResponses = [\n      `Thank you. What symptoms are you experiencing?`,\n      `Thanks. What symptoms are you experiencing?`,\n      `Perfect. What symptoms are you experiencing?`,\n      `Great. What symptoms are you experiencing?`,\n      `Excellent. What symptoms are you experiencing?`,\n      `Thank you. What symptoms are you experiencing?`,\n      `Thanks. What symptoms are you experiencing?`,\n      `Perfect. What symptoms are you experiencing?`,\n      `Great. What symptoms are you experiencing?`,\n      `Excellent. What symptoms are you experiencing?`\n    ];\n    \n    response = getRandomResponse(symptomsResponses);\n    nextState = 'waiting_for_symptoms';\n    highlightedText = 'symptoms';\n    quickActions = [];\n    break;\n    \n  case 'waiting_for_symptoms':\n    collectedData.symptoms = message;\n    \n    // Handle missing or empty services array\n    const services = demoContext.services && demoContext.services.length > 0 \n      ? demoContext.services.map((service, index) => `${index + 1}. ${service.name || service}`).join('\\n')\n      : '1. General Treatment';\n    \n    const procedureResponses = [\n      `What procedure are you interested in?\\n\\n${services}`,\n      `Which procedure interests you?\\n\\n${services}`,\n      `What procedure would you like to discuss?\\n\\n${services}`,\n      `Which procedure are you looking for?\\n\\n${services}`,\n      `What procedure are you considering?\\n\\n${services}`,\n      `Which procedure interests you most?\\n\\n${services}`,\n      `What procedure would you like to know about?\\n\\n${services}`,\n      `Which procedure are you interested in?\\n\\n${services}`,\n      `What procedure are you looking for?\\n\\n${services}`,\n      `Which procedure would you like to discuss?\\n\\n${services}`\n    ];\n    \n    response = getRandomResponse(procedureResponses);\n    nextState = 'waiting_for_procedure';\n    highlightedText = 'procedure';\n    quickActions = demoContext.services && demoContext.services.length > 0 \n      ? demoContext.services.map((service, index) => ({\n          text: service.name || service,\n          action: service.name || service\n        }))\n      : [{ text: 'General Treatment', action: 'General Treatment' }];\n    break;\n    \n  case 'waiting_for_procedure':\n    collectedData.procedure = message;\n    \n    // Handle missing or empty insurance providers array\n    const insuranceProviders = demoContext.insuranceProviders && demoContext.insuranceProviders.length > 0 \n      ? demoContext.insuranceProviders.map((provider, index) => `${index + 1}. ${provider.name || provider}`).join('\\n')\n      : '1. Private Insurance\\n2. Other';\n    \n    const insuranceResponses = [\n      `What insurance do you have?\\n\\n${insuranceProviders}`,\n      `Which insurance provider do you have?\\n\\n${insuranceProviders}`,\n      `What insurance coverage do you have?\\n\\n${insuranceProviders}`,\n      `Which insurance do you carry?\\n\\n${insuranceProviders}`,\n      `What insurance plan do you have?\\n\\n${insuranceProviders}`,\n      `Which insurance provider do you use?\\n\\n${insuranceProviders}`,\n      `What insurance coverage do you carry?\\n\\n${insuranceProviders}`,\n      `Which insurance provider do you have?\\n\\n${insuranceProviders}`,\n      `What insurance plan do you carry?\\n\\n${insuranceProviders}`,\n      `Which insurance provider do you have?\\n\\n${insuranceProviders}`\n    ];\n    \n    response = getRandomResponse(insuranceResponses);\n    nextState = 'waiting_for_insurance';\n    highlightedText = 'insurance';\n    quickActions = demoContext.insuranceProviders && demoContext.insuranceProviders.length > 0 \n      ? demoContext.insuranceProviders.map((provider, index) => ({\n          text: provider.name || provider,\n          action: provider.name || provider\n        }))\n      : [{ text: 'Private Insurance', action: 'Private Insurance' }, { text: 'Other', action: 'Other' }];\n    break;\n    \n  case 'waiting_for_insurance':\n    collectedData.insurance = message;\n    \n    const summaryResponses = [\n      `Thank you for providing all the information! I have collected:\\n\\n` +\n      `Name: ${collectedData.firstName} ${collectedData.lastName}\\n` +\n      `Date of Birth: ${collectedData.dateOfBirth}\\n` +\n      `Phone: ${collectedData.phone}\\n` +\n      `Email: ${collectedData.email}\\n` +\n      `Location: ${collectedData.location}\\n` +\n      `Pain Level: ${collectedData.painLevel}\\n` +\n      `Symptoms: ${collectedData.symptoms}\\n` +\n      `Procedure: ${collectedData.procedure}\\n` +\n      `Insurance: ${collectedData.insurance}\\n\\n` +\n      `Is there anything else you'd like to add?`,\n      \n      `Perfect! I've collected all the information:\\n\\n` +\n      `Name: ${collectedData.firstName} ${collectedData.lastName}\\n` +\n      `Date of Birth: ${collectedData.dateOfBirth}\\n` +\n      `Phone: ${collectedData.phone}\\n` +\n      `Email: ${collectedData.email}\\n` +\n      `Location: ${collectedData.location}\\n` +\n      `Pain Level: ${collectedData.painLevel}\\n` +\n      `Symptoms: ${collectedData.symptoms}\\n` +\n      `Procedure: ${collectedData.procedure}\\n` +\n      `Insurance: ${collectedData.insurance}\\n\\n` +\n      `Is there anything else you'd like to add?`,\n      \n      `Excellent! Here's what I have:\\n\\n` +\n      `Name: ${collectedData.firstName} ${collectedData.lastName}\\n` +\n      `Date of Birth: ${collectedData.dateOfBirth}\\n` +\n      `Phone: ${collectedData.phone}\\n` +\n      `Email: ${collectedData.email}\\n` +\n      `Location: ${collectedData.location}\\n` +\n      `Pain Level: ${collectedData.painLevel}\\n` +\n      `Symptoms: ${collectedData.symptoms}\\n` +\n      `Procedure: ${collectedData.procedure}\\n` +\n      `Insurance: ${collectedData.insurance}\\n\\n` +\n      `Is there anything else you'd like to add?`,\n      \n      `Wonderful! I've gathered all the details:\\n\\n` +\n      `Name: ${collectedData.firstName} ${collectedData.lastName}\\n` +\n      `Date of Birth: ${collectedData.dateOfBirth}\\n` +\n      `Phone: ${collectedData.phone}\\n` +\n      `Email: ${collectedData.email}\\n` +\n      `Location: ${collectedData.location}\\n` +\n      `Pain Level: ${collectedData.painLevel}\\n` +\n      `Symptoms: ${collectedData.symptoms}\\n` +\n      `Procedure: ${collectedData.procedure}\\n` +\n      `Insurance: ${collectedData.insurance}\\n\\n` +\n      `Is there anything else you'd like to add?`,\n      \n      `Fantastic! Here's the information I've collected:\\n\\n` +\n      `Name: ${collectedData.firstName} ${collectedData.lastName}\\n` +\n      `Date of Birth: ${collectedData.dateOfBirth}\\n` +\n      `Phone: ${collectedData.phone}\\n` +\n      `Email: ${collectedData.email}\\n` +\n      `Location: ${collectedData.location}\\n` +\n      `Pain Level: ${collectedData.painLevel}\\n` +\n      `Symptoms: ${collectedData.symptoms}\\n` +\n      `Procedure: ${collectedData.procedure}\\n` +\n      `Insurance: ${collectedData.insurance}\\n\\n` +\n      `Is there anything else you'd like to add?`,\n      \n      `Great! I have all the information:\\n\\n` +\n      `Name: ${collectedData.firstName} ${collectedData.lastName}\\n` +\n      `Date of Birth: ${collectedData.dateOfBirth}\\n` +\n      `Phone: ${collectedData.phone}\\n` +\n      `Email: ${collectedData.email}\\n` +\n      `Location: ${collectedData.location}\\n` +\n      `Pain Level: ${collectedData.painLevel}\\n` +\n      `Symptoms: ${collectedData.symptoms}\\n` +\n      `Procedure: ${collectedData.procedure}\\n` +\n      `Insurance: ${collectedData.insurance}\\n\\n` +\n      `Is there anything else you'd like to add?`,\n      \n      `Perfect! Here's what I've gathered:\\n\\n` +\n      `Name: ${collectedData.firstName} ${collectedData.lastName}\\n` +\n      `Date of Birth: ${collectedData.dateOfBirth}\\n` +\n      `Phone: ${collectedData.phone}\\n` +\n      `Email: ${collectedData.email}\\n` +\n      `Location: ${collectedData.location}\\n` +\n      `Pain Level: ${collectedData.painLevel}\\n` +\n      `Symptoms: ${collectedData.symptoms}\\n` +\n      `Procedure: ${collectedData.procedure}\\n` +\n      `Insurance: ${collectedData.insurance}\\n\\n` +\n      `Is there anything else you'd like to add?`,\n      \n      `Excellent! I've collected all the details:\\n\\n` +\n      `Name: ${collectedData.firstName} ${collectedData.lastName}\\n` +\n      `Date of Birth: ${collectedData.dateOfBirth}\\n` +\n      `Phone: ${collectedData.phone}\\n` +\n      `Email: ${collectedData.email}\\n` +\n      `Location: ${collectedData.location}\\n` +\n      `Pain Level: ${collectedData.painLevel}\\n` +\n      `Symptoms: ${collectedData.symptoms}\\n` +\n      `Procedure: ${collectedData.procedure}\\n` +\n      `Insurance: ${collectedData.insurance}\\n\\n` +\n      `Is there anything else you'd like to add?`,\n      \n      `Wonderful! Here's the information I have:\\n\\n` +\n      `Name: ${collectedData.firstName} ${collectedData.lastName}\\n` +\n      `Date of Birth: ${collectedData.dateOfBirth}\\n` +\n      `Phone: ${collectedData.phone}\\n` +\n      `Email: ${collectedData.email}\\n` +\n      `Location: ${collectedData.location}\\n` +\n      `Pain Level: ${collectedData.painLevel}\\n` +\n      `Symptoms: ${collectedData.symptoms}\\n` +\n      `Procedure: ${collectedData.procedure}\\n` +\n      `Insurance: ${collectedData.insurance}\\n\\n` +\n      `Is there anything else you'd like to add?`,\n      \n      `Fantastic! I've gathered all the information:\\n\\n` +\n      `Name: ${collectedData.firstName} ${collectedData.lastName}\\n` +\n      `Date of Birth: ${collectedData.dateOfBirth}\\n` +\n      `Phone: ${collectedData.phone}\\n` +\n      `Email: ${collectedData.email}\\n` +\n      `Location: ${collectedData.location}\\n` +\n      `Pain Level: ${collectedData.painLevel}\\n` +\n      `Symptoms: ${collectedData.symptoms}\\n` +\n      `Procedure: ${collectedData.procedure}\\n` +\n      `Insurance: ${collectedData.insurance}\\n\\n` +\n      `Is there anything else you'd like to add?`\n    ];\n    \n    response = getRandomResponse(summaryResponses);\n    nextState = 'complete';\n    quickActions = [\n      { text: 'Yes, add more', action: 'add_more' },\n      { text: 'No, that\\'s all', action: 'complete' }\n    ];\n    break;\n    \n  default:\n    const defaultResponses = [\n      `I'm ${demoContext.agentName} from ${demoContext.companyName}. I'm here to help you schedule an appointment. Would you like to start?`,\n      `Hello! I'm ${demoContext.agentName} from ${demoContext.companyName}. How can I assist you with scheduling an appointment?`,\n      `Hi there! I'm ${demoContext.agentName} from ${demoContext.companyName}. I'm here to help you book an appointment.`,\n      `Welcome! I'm ${demoContext.agentName} from ${demoContext.companyName}. How may I help you schedule an appointment?`,\n      `Greetings! I'm ${demoContext.agentName} from ${demoContext.companyName}. I'm here to assist with your appointment booking.`,\n      `Hello and welcome! I'm ${demoContext.agentName} from ${demoContext.companyName}. How can I help you schedule an appointment?`,\n      `Hi! I'm ${demoContext.agentName} from ${demoContext.companyName}. I'm here to support you with appointment scheduling.`,\n      `Good to see you! I'm ${demoContext.agentName} from ${demoContext.companyName}. How may I help you book an appointment?`,\n      `Welcome! I'm ${demoContext.agentName} from ${demoContext.companyName}. I'm here to help you schedule an appointment.`,\n      `Hello there! I'm ${demoContext.agentName} from ${demoContext.companyName}. How can I assist you with your appointment?`\n    ];\n    \n    response = getRandomResponse(defaultResponses);\n    nextState = 'initial';\n    quickActions = [\n      { text: 'Schedule Appointment', action: 'schedule' }\n    ];\n    break;\n}\n\nconsole.log(' Next State:', nextState);\nconsole.log('🔧 Response:', response);\nconsole.log('🔧 Final Collected Data:', collectedData);\nconsole.log('🔧 Quick Actions:', quickActions);\n\nreturn [{\n  \"json\": {\n    \"message\": response,\n    \"currentState\": nextState,\n    \"collectedData\": collectedData,\n    \"highlightedText\": highlightedText,\n    \"demoContext\": demoContext,\n    \"bookingState\": nextState,\n    \"bookingData\": collectedData,\n    \"quickActions\": quickActions,\n    \"timestamp\": new Date().toISOString()\n  },\n  \"pairedItem\": 0\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        816,
+        -16
+      ],
+      "id": "c6680da8-98c4-4601-b208-c838a5e7cc9a",
+      "name": "Complete State Manager"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.operation }}",
+              "value2": "store"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        352,
+        -32
+      ],
+      "id": "644fd4da-d050-4c9b-a042-a26241bd46b6",
+      "name": "If Operation"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Shared Context Storage - PERMANENT SOLUTION\nconst input = $input.first().json;\nconst operation = input.operation || 'get';\nconst demoId = input.demoId || input.demo_id || '';\nconst demoContext = input.demoContext || {};\nconst message = input.message || '';\nconst currentState = input.currentState || 'initial';\nconst collectedData = input.collectedData || {};\nconst bookingState = input.bookingState || '';\nconst bookingData = input.bookingData || {};\n\nconsole.log('🏪 Shared Context Storage - Operation:', operation);\nconsole.log('🏪 Demo ID:', demoId);\n\nif (operation === 'store') {\n  // Store demo context - but we'll pass it through the workflow instead\n  if (!demoId) {\n    console.log('❌ No demo ID provided for storage');\n    return [{\n      \"json\": {\n        \"success\": false,\n        \"error\": \"No demo ID provided\",\n        \"timestamp\": new Date().toISOString()\n      },\n      \"pairedItem\": 0\n    }];\n  }\n  \n  if (!demoContext.companyName) {\n    console.log('❌ No demo context provided for storage');\n    return [{\n      \"json\": {\n        \"success\": false,\n        \"error\": \"No demo context provided\",\n        \"timestamp\": new Date().toISOString()\n      },\n      \"pairedItem\": 0\n    }];\n  }\n  \n  console.log('💾 Demo context received for demo ID:', demoId);\n  console.log('🏢 Company:', demoContext.companyName);\n  console.log('👤 Agent:', demoContext.agentName);\n  \n  // PASS THE CONTEXT THROUGH THE WORKFLOW\n  return [{\n    \"json\": {\n      \"success\": true,\n      \"operation\": \"store\",\n      \"demoId\": demoId,\n      \"demoContext\": demoContext, // PASS THE CONTEXT FORWARD\n      \"storedAt\": new Date().toISOString(),\n      \"message\": \"Demo context stored successfully\"\n    },\n    \"pairedItem\": 0\n  }];\n  \n} else if (operation === 'get') {\n  // Retrieve demo context - PASS THROUGH THE CONTEXT FROM INPUT\n  if (!demoId) {\n    console.log('❌ No demo ID provided for retrieval');\n    return [{\n      \"json\": {\n        \"success\": false,\n        \"error\": \"No demo ID provided\",\n        \"message\": message,\n        \"demoContext\": null\n      },\n      \"pairedItem\": 0\n    }];\n  }\n  \n  // PERMANENT SOLUTION: Pass through the demo context from the input\n  console.log('🔍 Processing get operation for demo ID:', demoId);\n  console.log('🏢 Demo context from input:', demoContext.companyName);\n  \n  return [{\n    \"json\": {\n      \"success\": true,\n      \"operation\": \"get\",\n      \"demoId\": demoId,\n      \"message\": message,\n      \"demoContext\": demoContext, // CRITICAL: Pass through the context from input\n      \"currentState\": currentState,\n      \"collectedData\": collectedData,\n      \"bookingState\": bookingState,\n      \"bookingData\": bookingData,\n      \"timestamp\": new Date().toISOString(),\n      \"source\": \"workflow_flow\"\n    },\n    \"pairedItem\": 0\n  }];\n}\n\n// Invalid operation\nconsole.log('❌ Invalid operation:', operation);\nreturn [{\n  \"json\": {\n    \"success\": false,\n    \"error\": \"Invalid operation. Use \\\"store\\\" or \\\"get\\\"\",\n    \"timestamp\": new Date().toISOString()\n  },\n  \"pairedItem\": 0\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        160,
+        -32
+      ],
+      "id": "ee26fbb9-9d83-4234-ad94-35bddbf71b58",
+      "name": "Shared Context Storage"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Chat Handler - Prepare data for shared storage retrieval\nconst input = $input.first().json;\n\nconsole.log('💬 Chat Handler - Input:', JSON.stringify(input, null, 2));\n\n// Extract chat data from the webhook payload\nconst message = input.body?.message || '';\nconst demoId = input.body?.demoId || input.body?.demo_id || '';\nconst currentState = input.body?.currentState || 'initial';\nconst collectedData = input.body?.collectedData || {};\nconst bookingState = input.body?.bookingState || '';\nconst bookingData = input.body?.bookingData || {};\n\n// CRITICAL FIX: Extract demo context from the webhook body\nlet demoContext = {};\nif (input.body?.config?.branding) {\n  demoContext = {\n    companyName: input.body.config.branding.companyName || '',\n    agentName: input.body.config.agentName || '',\n    locations: input.body.config.branding.locations || [],\n    services: input.body.config.branding.categories || [],\n    insuranceProviders: input.body?.config?.branding?.insuranceProviders || input.body?.userContext?.insuranceProviders || []\n  };\n} else if (input.body?.userContext) {\n  demoContext = {\n    companyName: input.body.userContext.companyName || '',\n    agentName: input.body.userContext.agentName || '',\n    locations: [],\n    services: [],\n    insuranceProviders: input.body?.userContext?.insuranceProviders || []\n  };\n}\n\nconsole.log('💬 Extracted data:');\nconsole.log('�� Message:', message);\nconsole.log('🆔 Demo ID:', demoId);\nconsole.log('🔄 Current State:', currentState);\nconsole.log('📊 Collected Data:', Object.keys(collectedData));\nconsole.log('📅 Booking State:', bookingState);\nconsole.log('📋 Booking Data:', Object.keys(bookingData));\nconsole.log('🏢 Demo Context:', demoContext.companyName);\nconsole.log('�� Agent Name:', demoContext.agentName);\n\nif (!demoId) {\n  console.log('❌ No demo ID provided for chat');\n  return [{\n    \"json\": {\n      \"success\": false,\n      \"error\": \"No demo ID provided\",\n      \"message\": message\n    },\n    \"pairedItem\": 0\n  }];\n}\n\n// Prepare data for shared storage retrieval\nreturn [{\n  \"json\": {\n    \"operation\": \"get\",\n    \"demoId\": demoId,\n    \"message\": message,\n    \"demoContext\": demoContext, // CRITICAL: Include the demo context\n    \"currentState\": currentState,\n    \"collectedData\": collectedData,\n    \"bookingState\": bookingState,\n    \"bookingData\": bookingData,\n    \"timestamp\": new Date().toISOString()\n  },\n  \"pairedItem\": 0\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -32,
+        64
+      ],
+      "id": "a07bbc9b-fc4a-491e-9128-e87177052dfb",
+      "name": "Chat Handler"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Demo Creation Handler - Prepare data for shared storage\nconst input = $input.first().json;\n\nconsole.log('🎯 Demo Creation Handler - Input:', JSON.stringify(input, null, 2));\n\n// Extract demo context from the webhook payload\nconst webhookBody = input.body || {};\nconst demoContext = webhookBody.demoContext || {};\nconst demoId = webhookBody.demoId || webhookBody.demo_id || '';\n\nconsole.log('🎯 Webhook Body:', JSON.stringify(webhookBody, null, 2));\nconsole.log('🎯 Demo ID from body:', demoId);\nconsole.log('🎯 Demo Context from body:', JSON.stringify(demoContext, null, 2));\n\nif (!demoId) {\n  console.log('❌ No demo ID provided');\n  return [{\n    \"json\": {\n      \"success\": false,\n      \"error\": \"No demo ID provided\",\n      \"timestamp\": new Date().toISOString()\n    },\n    \"pairedItem\": 0\n  }];\n}\n\nif (!demoContext.companyName) {\n  console.log('❌ No demo context provided');\n  return [{\n    \"json\": {\n      \"success\": false,\n      \"error\": \"No demo context provided\",\n      \"timestamp\": new Date().toISOString()\n    },\n    \"pairedItem\": 0\n  }];\n}\n\nconsole.log('✅ Demo creation data prepared for storage:');\nconsole.log('🏢 Company:', demoContext.companyName);\nconsole.log('👤 Agent:', demoContext.agentName);\nconsole.log('🆔 Demo ID:', demoId);\n\n// Prepare data for shared storage\nreturn [{\n  \"json\": {\n    \"operation\": \"store\",\n    \"demoId\": demoId,\n    \"demoContext\": demoContext,\n    \"timestamp\": new Date().toISOString()\n  },\n  \"pairedItem\": 0\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -32,
+        -144
+      ],
+      "id": "9e6e33ca-17e1-438c-8c92-845784d260fb",
+      "name": "Demo Creation Handler"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "demo-chat-universal",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -240,
+        64
+      ],
+      "id": "42c3e17e-222c-4167-9f0b-bd543d92e880",
+      "name": "Chat Webhook",
+      "path": "demo-chat-universal"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "demo-creation-webhook",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -240,
+        -144
+      ],
+      "id": "41038aab-c1ee-47e7-a18c-e95fccd72bdd",
+      "name": "Demo Creation Webhook",
+      "webhookId": "c280effa-983e-445a-8512-47b3490570c1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Demo Creation Response": {
+      "main": []
+    },
+    "Complete State Manager": {
+      "main": [
+        [
+          {
+            "node": "Chat Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Operation": {
+      "main": [
+        [
+          {
+            "node": "Demo Creation Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Complete State Manager",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shared Context Storage": {
+      "main": [
+        [
+          {
+            "node": "If Operation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chat Handler": {
+      "main": [
+        [
+          {
+            "node": "Shared Context Storage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Demo Creation Handler": {
+      "main": [
+        [
+          {
+            "node": "Shared Context Storage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chat Webhook": {
+      "main": [
+        [
+          {
+            "node": "Chat Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Demo Creation Webhook": {
+      "main": [
+        [
+          {
+            "node": "Demo Creation Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "237ea0fc-c8e4-4377-9027-fa7b821f5c2b",
+  "meta": {
+    "instanceId": "3804add5be7f35ac00e0b5666194b6406c0d9f0a3b44cb6e3a1ae11232cccf52"
+  },
+  "id": "rnTkvINrSIZ8sENr",
+  "tags": [
+    {
+      "createdAt": "2025-08-18T16:18:00.839Z",
+      "updatedAt": "2025-08-18T16:18:00.839Z",
+      "id": "56X4juvQrJAMpQqd",
+      "name": "Dynamic Context"
+    },
+    {
+      "createdAt": "2025-08-18T16:52:43.425Z",
+      "updatedAt": "2025-08-18T16:52:43.425Z",
+      "id": "8RovmSeS30adtvsC",
+      "name": "Enhanced Demo"
+    },
+    {
+      "createdAt": "2025-08-18T16:18:00.593Z",
+      "updatedAt": "2025-08-18T16:18:00.593Z",
+      "id": "8dxZhS2n0VJC0xd6",
+      "name": "Universal Demo"
+    },
+    {
+      "createdAt": "2025-08-18T16:18:00.817Z",
+      "updatedAt": "2025-08-18T16:18:00.817Z",
+      "id": "fuAZfTEFj2u6hIh0",
+      "name": "White Label"
+    },
+    {
+      "createdAt": "2025-08-18T16:52:43.482Z",
+      "updatedAt": "2025-08-18T16:52:43.482Z",
+      "id": "iC6GH4iUuIo0MqJV",
+      "name": "Multi-Input"
+    },
+    {
+      "createdAt": "2025-08-18T16:52:43.457Z",
+      "updatedAt": "2025-08-18T16:52:43.457Z",
+      "id": "uOAdJY0emIhHc88Y",
+      "name": "Universal"
+    },
+    {
+      "name": "Fixed Booking Flow",
+      "id": "Xi9EAZmnch5ZK26B",
+      "createdAt": "2025-08-19T18:59:18.405Z",
+      "updatedAt": "2025-08-19T18:59:18.405Z"
+    },
+    {
+      "name": "State Management Fixed",
+      "id": "Zlj8qnFh52bGMbQL",
+      "createdAt": "2025-08-19T18:59:18.426Z",
+      "updatedAt": "2025-08-19T18:59:18.426Z"
+    }
+  ]
+}
