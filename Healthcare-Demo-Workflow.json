@@ -1,0 +1,938 @@
+{
+  "name": "Healthcare-Demo-Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        2208,
+        304
+      ],
+      "id": "078402e7-9c36-4b6b-aea2-34db7c716575",
+      "name": "Chat Response"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        464,
+        112
+      ],
+      "id": "941efcbb-fe26-4ee7-8964-c94ad97053f9",
+      "name": "Demo Creation Response"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.operation }}",
+              "value2": "store"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        224,
+        288
+      ],
+      "id": "bf5fc085-5fef-4833-8063-49410fca07d1",
+      "name": "If Operation"
+    },
+    {
+      "parameters": {
+        "jsCode": "const nodeStartTime = Date.now();\nconsole.log(`\u23f1\ufe0f [SHARED CONTEXT STORAGE] Started at ${nodeStartTime}`);\n\nconst input = $input.first().json;\nconst operation = input.operation || 'get';\nconst demoId = input.demoId || input.demo_id || '';\nconst demoContext = input.demoContext || {};\nconst message = input.message || '';\nconst currentState = input.currentState || 'initial';\nconst collectedData = input.collectedData || {};\nconst bookingState = input.bookingState || '';\nconst bookingData = input.bookingData || {};\n\nconsole.log('\ud83c\udfea Operation:', operation, '| Demo:', demoId);\n\nif (operation === 'store') {\n  // Store demo context\n  if (!demoId || !demoContext.companyName) {\n    const nodeEndTime = Date.now();\n    console.log(`\u23f1\ufe0f [SHARED CONTEXT STORAGE] Completed in ${nodeEndTime - nodeStartTime}ms (error)`);\n\n    // \ud83d\udea8 FIX: Store timestamp as ISO string in variable\n    const errorTimestamp = new Date().toISOString();\n\n    return [{\n      \"json\": {\n        \"success\": false,\n        \"error\": \"Invalid store request\",\n        \"timestamp\": errorTimestamp\n      },\n      \"pairedItem\": 0\n    }];\n  }\n\n  console.log('\ud83d\udcbe Demo context stored for:', demoContext.companyName);\n\n  const nodeEndTime = Date.now();\n  console.log(`\u23f1\ufe0f [SHARED CONTEXT STORAGE] Completed in ${nodeEndTime - nodeStartTime}ms`);\n\n  // \ud83d\udea8 FIX: Store timestamp as ISO string in variable\n  const storedTimestamp = new Date().toISOString();\n\n  return [{\n    \"json\": {\n      \"success\": true,\n      \"operation\": \"store\",\n      \"demoId\": demoId,\n      \"demoContext\": demoContext,\n      \"storedAt\": storedTimestamp,\n      \"message\": \"Demo context stored successfully\"\n    },\n    \"pairedItem\": 0\n  }];\n\n} else if (operation === 'get') {\n  // Retrieve demo context - PASS THROUGH\n  if (!demoId) {\n    const nodeEndTime = Date.now();\n    console.log(`\u23f1\ufe0f [SHARED CONTEXT STORAGE] Completed in ${nodeEndTime - nodeStartTime}ms (error)`);\n    return [{\n      \"json\": {\n        \"success\": false,\n        \"error\": \"No demo ID provided\",\n        \"message\": message,\n        \"demoContext\": null\n      },\n      \"pairedItem\": 0\n    }];\n  }\n\n  console.log('\ud83d\udd0d Processing get for:', demoContext.companyName);\n\n  const nodeEndTime = Date.now();\n  console.log(`\u23f1\ufe0f [SHARED CONTEXT STORAGE] Completed in ${nodeEndTime - nodeStartTime}ms`);\n\n  // \ud83d\udea8 FIX: Store timestamp as ISO string in variable\n  const getTimestamp = new Date().toISOString();\n\n  return [{\n    \"json\": {\n      \"success\": true,\n      \"operation\": \"get\",\n      \"demoId\": demoId,\n      \"message\": message,\n      \"demoContext\": demoContext,\n      \"currentState\": currentState,\n      \"collectedData\": collectedData,\n      \"bookingState\": bookingState,\n      \"bookingData\": bookingData,\n      \"timestamp\": getTimestamp,\n      \"source\": \"workflow_flow\"\n    },\n    \"pairedItem\": 0\n  }];\n}\n\n// Invalid operation\nconst nodeEndTime = Date.now();\nconsole.log(`\u23f1\ufe0f [SHARED CONTEXT STORAGE] Completed in ${nodeEndTime - nodeStartTime}ms (invalid)`);\n\n// \ud83d\udea8 FIX: Store timestamp as ISO string in variable\nconst invalidTimestamp = new Date().toISOString();\n\nreturn [{\n  \"json\": {\n    \"success\": false,\n    \"error\": \"Invalid operation. Use 'store' or 'get'\",\n    \"timestamp\": invalidTimestamp\n  },\n  \"pairedItem\": 0\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        288
+      ],
+      "id": "fc0f60bd-5945-4685-b67b-fd5e83bfb922",
+      "name": "Shared Context Storage"
+    },
+    {
+      "parameters": {
+        "jsCode": "const nodeStartTime = Date.now();\nconsole.log(`\u23f1\ufe0f [CHAT HANDLER] Started at ${nodeStartTime}`);\n\nconst input = $input.first().json;\n\n// Extract chat data from the webhook payload\nconst message = input.body?.message || '';\nconst demoId = input.body?.demoId || input.body?.demo_id || '';\nconst currentState = input.body?.currentState || 'initial';\nconst collectedData = input.body?.collectedData || {};\nconst bookingState = input.body?.bookingState || '';\nconst bookingData = input.body?.bookingData || {};\n\n// CRITICAL: Extract paused booking state from webhook body (for context switching)\nconst pausedBookingState = input.body?.pausedBookingState || null;\nconst pausedBookingData = input.body?.pausedBookingData || null;\n\n// CRITICAL FIX: Extract demo context from the webhook body\nlet demoContext = {};\nif (input.body?.demoContext) {\n  demoContext = input.body.demoContext;\n  console.log('\u2705 Using demo context from webhook body:', demoContext.companyName);\n} else if (input.body?.config?.branding) {\n  demoContext = {\n    companyName: input.body.config.branding.companyName || '',\n    agentName: input.body.config.agentName || '',\n    locations: input.body.config.branding.locations || [],\n    services: input.body.config.branding.categories || [],\n    insuranceProviders: input.body?.config?.branding?.insuranceProviders || input.body?.userContext?.insuranceProviders || []\n  };\n} else if (input.body?.userContext) {\n  demoContext = {\n    companyName: input.body.userContext.companyName || '',\n    agentName: input.body.userContext.agentName || '',\n    locations: [],\n    services: [],\n    insuranceProviders: input.body?.userContext?.insuranceProviders || []\n  };\n}\n\nconsole.log('\ud83d\udcac Message:', message?.substring(0, 50));\nconsole.log('\ud83c\udd94 Demo ID:', demoId);\n\nif (!demoId) {\n  console.log('\u274c No demo ID provided for chat');\n  return [{\n    \"json\": {\n      \"success\": false,\n      \"error\": \"No demo ID provided\",\n      \"message\": message\n    },\n    \"pairedItem\": 0\n  }];\n}\n\nconst nodeEndTime = Date.now();\nconsole.log(`\u23f1\ufe0f [CHAT HANDLER] Completed in ${nodeEndTime - nodeStartTime}ms`);\n\n// \ud83d\udea8 CRITICAL FIX: Store timestamp as ISO string in variable first\nconst currentTimestamp = new Date().toISOString();\n\n// Prepare data for shared storage retrieval\nreturn [{\n  \"json\": {\n    \"operation\": \"get\",\n    \"demoId\": demoId,\n    \"message\": message,\n    \"demoContext\": demoContext,\n    \"currentState\": currentState,\n    \"collectedData\": collectedData,\n    \"bookingState\": bookingState,\n    \"bookingData\": bookingData,\n    \"pausedBookingState\": pausedBookingState,\n    \"pausedBookingData\": pausedBookingData,\n    \"timestamp\": currentTimestamp  // \u2705 ISO string (not Date object)\n  },\n  \"pairedItem\": 0\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        272,
+        576
+      ],
+      "id": "e82232c6-0ddd-42de-a109-ea45031070c5",
+      "name": "Chat Handler"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Demo Creation Handler - Prepare data for shared storage\nconst input = $input.first().json;\n\nconsole.log('\ud83c\udfaf Demo Creation Handler - Input:', JSON.stringify(input, null, 2));\n\n// Extract demo context from the webhook payload\nconst webhookBody = input.body || {};\nconst demoContext = webhookBody.demoContext || {};\nconst demoId = webhookBody.demoId || webhookBody.demo_id || '';\n\nconsole.log('\ud83c\udfaf Webhook Body:', JSON.stringify(webhookBody, null, 2));\nconsole.log('\ud83c\udfaf Demo ID from body:', demoId);\nconsole.log('\ud83c\udfaf Demo Context from body:', JSON.stringify(demoContext, null, 2));\n\nif (!demoId) {\n  console.log('\u274c No demo ID provided');\n  return [{\n    \"json\": {\n      \"success\": false,\n      \"error\": \"No demo ID provided\",\n      \"timestamp\": new Date().toISOString()\n    },\n    \"pairedItem\": 0\n  }];\n}\n\nif (!demoContext.companyName) {\n  console.log('\u274c No demo context provided');\n  return [{\n    \"json\": {\n      \"success\": false,\n      \"error\": \"No demo context provided\",\n      \"timestamp\": new Date().toISOString()\n    },\n    \"pairedItem\": 0\n  }];\n}\n\nconsole.log('\u2705 Demo creation data prepared for storage:');\nconsole.log('\ud83c\udfe2 Company:', demoContext.companyName);\nconsole.log('\ud83d\udc64 Agent:', demoContext.agentName);\nconsole.log('\ud83c\udd94 Demo ID:', demoId);\n\n// Prepare data for shared storage\nreturn [{\n  \"json\": {\n    \"operation\": \"store\",\n    \"demoId\": demoId,\n    \"demoContext\": demoContext,\n    \"timestamp\": new Date().toISOString()\n  },\n  \"pairedItem\": 0\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -256,
+        288
+      ],
+      "id": "b1ad26ac-784e-4a3a-a349-136edf21fc3c",
+      "name": "Demo Creation Handler"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "demo-chat-universal",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        48,
+        576
+      ],
+      "id": "0627077b-e319-4c03-9e45-9755a8903896",
+      "name": "Chat Webhook",
+      "path": "demo-chat-universal",
+      "webhookId": "759b2af5-194d-4b63-a1bb-1a51780d43ab"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "demo-creation-webhook",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -480,
+        288
+      ],
+      "id": "607751bb-3a34-43e5-96e2-2d3fe58c64d8",
+      "name": "Demo Creation Webhook",
+      "webhookId": "c280effa-983e-445a-8512-47b3490570c1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const nodeStartTime = Date.now();\nconsole.log(`\u23f1\ufe0f [INTENT DETECTOR] Started at ${nodeStartTime}`);\n\nconst input = $input.first().json;\nconst message = (input.message || '').toLowerCase();\nconst currentState = input.currentState || input.bookingState || 'initial';\nconst collectedData = input.collectedData || {};\nconst bookingData = input.bookingData || {};\nconst pausedBookingState = input.pausedBookingState || null;\nconst pausedBookingData = input.pausedBookingData || null;\n\nconsole.log('\ud83d\udd0d Message:', message?.substring(0, 30), '| State:', currentState);\n\n// Question keywords\nconst questionKeywords = [\n  'what', 'which', 'who', 'where', 'when', 'how', 'why',\n  'tell me', 'explain', 'describe', 'do you offer', 'do you have',\n  'services', 'procedures', 'treatment', 'location', 'team', 'hours',\n  'accept', 'insurance', 'cost', 'price', 'fee', 'can you', 'will'\n];\n\nconst isQuestion = questionKeywords.some(keyword => {\n  if (keyword.includes(' ')) {\n    return message.includes(keyword);\n  } else {\n    const regex = new RegExp(`\\\\b${keyword}\\\\b`, 'i');\n    return regex.test(message);\n  }\n});\n\n// Handle Resume Booking request\nif (message === 'resume_booking' || message === 'resume booking') {\n  console.log('\ud83d\udd04 RESUME BOOKING');\n  const nodeEndTime = Date.now();\n  console.log(`\u23f1\ufe0f [INTENT DETECTOR] Completed in ${nodeEndTime - nodeStartTime}ms`);\n  return [{\n    json: {\n      ...input,\n      intent: 'booking',\n      route: 'booking',\n      pausedBookingState: pausedBookingState,\n      pausedBookingData: pausedBookingData\n    }\n  }];\n}\n\n// Handle questions during booking flow\nif (currentState !== 'initial' && currentState !== 'complete' && currentState !== 'paused') {\n  const inputStates = [\n    'waiting_for_name', 'waiting_for_dob', 'waiting_for_phone', 'waiting_for_email',\n    'waiting_for_location', 'waiting_for_pain_level', 'waiting_for_symptoms',\n    'waiting_for_procedure', 'waiting_for_insurance', 'waiting_for_time_preference',\n    'waiting_for_urgency', 'waiting_for_day_selection', 'generating_appointment_slots'\n  ];\n\n  const isInputState = inputStates.includes(currentState);\n\n  if (isInputState) {\n    const startsWithQuestion = /^(what|which|who|where|when|how|why|can you|do you|will you|could you|tell me|explain|describe)/i.test(message);\n\n    if (startsWithQuestion) {\n      console.log('\ud83d\udd04 CLEAR QUESTION - Pausing booking');\n      const nodeEndTime = Date.now();\n      console.log(`\u23f1\ufe0f [INTENT DETECTOR] Completed in ${nodeEndTime - nodeStartTime}ms`);\n      return [{\n        json: {\n          ...input,\n          intent: 'question',\n          route: 'healthcare_concierge',\n          pausedBookingState: currentState,\n          pausedBookingData: { ...collectedData, ...bookingData }\n        }\n      }];\n    } else {\n      console.log('\u2705 INPUT STATE - Continue booking');\n      const nodeEndTime = Date.now();\n      console.log(`\u23f1\ufe0f [INTENT DETECTOR] Completed in ${nodeEndTime - nodeStartTime}ms`);\n      return [{\n        json: {\n          ...input,\n          intent: 'booking',\n          route: 'booking'\n        }\n      }];\n    }\n  } else if (isQuestion) {\n    console.log('\ud83d\udd04 QUESTION - Pausing booking');\n    const nodeEndTime = Date.now();\n    console.log(`\u23f1\ufe0f [INTENT DETECTOR] Completed in ${nodeEndTime - nodeStartTime}ms`);\n    return [{\n      json: {\n        ...input,\n        intent: 'question',\n        route: 'healthcare_concierge',\n        pausedBookingState: currentState,\n        pausedBookingData: { ...collectedData, ...bookingData }\n      }\n    }];\n  } else {\n    console.log('\u2705 ALREADY IN BOOKING');\n    const nodeEndTime = Date.now();\n    console.log(`\u23f1\ufe0f [INTENT DETECTOR] Completed in ${nodeEndTime - nodeStartTime}ms`);\n    return [{\n      json: {\n        ...input,\n        intent: 'booking',\n        route: 'booking'\n      }\n    }];\n  }\n}\n\n// Detect booking intent\nconst bookingKeywords = [\n  'appointment', 'book', 'schedule', 'make an appointment', 'set up', 'arrange',\n  'like to schedule', 'like to book', 'want to schedule', 'want to book',\n  'want an appointment', 'need to schedule', 'need to book', 'need an appointment'\n];\nconst isBooking = bookingKeywords.some(keyword => message.includes(keyword));\n\nlet intent = 'question';\nlet route = 'healthcare_concierge';\n\nif (isBooking && !isQuestion) {\n  intent = 'booking';\n  route = 'booking';\n}\n\nconsole.log('\ud83d\udd0d Intent:', intent, '| Route:', route);\n\nconst output = {\n  ...input,\n  intent: intent,\n  route: route\n};\n\nif (pausedBookingState && route === 'healthcare_concierge') {\n  output.pausedBookingState = pausedBookingState;\n  output.pausedBookingData = pausedBookingData;\n}\n\nconst nodeEndTime = Date.now();\nconsole.log(`\u23f1\ufe0f [INTENT DETECTOR] Completed in ${nodeEndTime - nodeStartTime}ms`);\n\nreturn [{\n  json: output,\n  pairedItem: 0  // \u2705 CRITICAL: Link output to input item for N8N data flow\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        496,
+        576
+      ],
+      "id": "0502d08b-d34d-4526-871e-a482fe6468a1",
+      "name": "Intent Detector"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst demoContext = input.demoContext || {};\nconst message = input.message || '';\n\n// CRITICAL: Extract and preserve paused booking state for context switching\nconst pausedBookingState = input.pausedBookingState || null;\nconst pausedBookingData = input.pausedBookingData || null;\n\n// Helper function to parse JSON strings to arrays\nfunction parseIfString(data) {\n  if (typeof data === 'string') {\n    try {\n      return JSON.parse(data);\n    } catch (e) {\n      return [];\n    }\n  }\n  return data || [];\n}\n\n// Extract comprehensive context with parsing\nconst companyName = demoContext.companyName || 'our practice';\nconst agentName = demoContext.agentName || 'your assistant';\nconst allServices = parseIfString(demoContext.allServices || demoContext.services);\nconst topServices = parseIfString(demoContext.services); // Top 6 services\nconst businessRules = parseIfString(demoContext.businessRules || demoContext.business_rules);\nconst teamMembers = parseIfString(demoContext.teamMembers || demoContext.team_members);\nconst locations = parseIfString(demoContext.locations);\n\n// Build team section\nlet teamSection = '';\nif (teamMembers && teamMembers.length > 0) {\n  teamSection = '\\n\\nTEAM MEMBERS:\\n';\n  teamMembers.forEach(member => {\n    const firstName = member.first_name || member.firstName || '';\n    const lastName = member.last_name || member.lastName || '';\n    const role = member.role || '';\n    teamSection += `- ${firstName} ${lastName}${role ? ` (${role})` : ''}\\n`;\n  });\n}\n\n// Build business rules section\nlet rulesSection = '';\nif (businessRules && businessRules.length > 0) {\n  rulesSection = '\\n\\nBUSINESS RULES & POLICIES:\\n';\n  businessRules.forEach(rule => {\n    const ruleName = rule.rule_name || rule.name || '';\n    const ruleDesc = rule.rule_description || rule.description || '';\n    rulesSection += `- ${ruleName}${ruleDesc ? `: ${ruleDesc}` : ''}\\n`;\n  });\n}\n\n// Build TOP services list (featured - usually 6)\nconst topServicesList = topServices.length > 0\n  ? '\\n\\nTOP/FEATURED SERVICES (highlight these):\\n' + topServices.slice(0, 6).map(s =>\n      `- ${typeof s === 'string' ? s : s.name || s.service_name || ''}`\n    ).join('\\n')\n  : '';\n\n// Build ALL services list (for reference)\nconst allServicesList = allServices.length > 0\n  ? '\\n\\nALL AVAILABLE SERVICES:\\n' + allServices.map(s =>\n      `- ${typeof s === 'string' ? s : s.name || s.service_name || ''}`\n    ).join('\\n')\n  : '';\n\n// Build locations list\nconst locationsList = locations.length > 0\n  ? '\\n\\nLOCATIONS:\\n' + locations.map(loc =>\n      `- ${loc.name || loc.city || 'Location'}: ${loc.address1 || ''}, ${loc.city || ''}, ${loc.state || ''}`\n    ).join('\\n')\n  : '';\n\n// Build comprehensive system message\nconst systemMessage = `You are ${agentName}, a Healthcare Patient Care Concierge at ${companyName}.\n\nCOMPANY INFORMATION:\n- Company: ${companyName}\n- Agent: ${agentName}\n- Phone: ${demoContext.companyPhone || 'N/A'}\n- Email: ${demoContext.companyEmail || 'N/A'}\n${topServicesList}\n${allServicesList}\n${locationsList}\n${teamSection}\n${rulesSection}\n\nYOUR ROLE AS HEALTHCARE PATIENT CARE CONCIERGE:\n- Answer ALL questions about ${companyName}'s services, policies, team, and locations\n- Be empathetic, professional, warm, and CONCISE\n- For MEDICAL questions (diagnosis, treatment, medication): politely note you're not a medical professional and offer team member callback\n- For BOOKING requests: say \"I can help you schedule an appointment. Would you like to proceed?\"\n\nCRITICAL: YOU MUST RETURN HTML-FORMATTED RESPONSES WITH INLINE CSS STYLING\n\nHTML FORMATTING REQUIREMENTS:\n- ALWAYS wrap your entire response in a <div> with proper styling\n- Use <strong> for category headers (Pain Management, Sports Medicine, etc.)\n- Use <ul> and <li> for service lists\n- Use line breaks <br> for spacing\n- Use inline CSS for colors and styling\n- Keep it clean, professional, and easy to read\n\nRESPONSE TEMPLATE FOR SERVICES:\n<div style=\"line-height: 1.6;\">\n  <p style=\"margin-bottom: 12px;\">We offer a comprehensive range of spine, orthopedic, and pain management services including:</p>\n\n  <div style=\"margin-bottom: 16px;\">\n    <strong style=\"color: #f97316; font-size: 14px;\">Pain Management:</strong>\n    <ul style=\"margin: 8px 0; padding-left: 20px;\">\n      <li>Epidural Injections</li>\n      <li>Nerve Blocks</li>\n      <li>Facet Joint Injections</li>\n    </ul>\n  </div>\n\n  <div style=\"margin-bottom: 16px;\">\n    <strong style=\"color: #f97316; font-size: 14px;\">Sports Medicine:</strong>\n    <ul style=\"margin: 8px 0; padding-left: 20px;\">\n      <li>Sports Injury Treatment</li>\n      <li>Physical Therapy</li>\n    </ul>\n  </div>\n\n  <p style=\"margin-top: 12px; font-style: italic; color: #94a3b8;\">We also offer many other pain and sports medicine related services.</p>\n\n  <p style=\"margin-top: 16px;\">Would you like more information about any specific procedure or help scheduling an appointment?</p>\n</div>\n\nTEMPLATE FOR LOCATIONS (dark mode friendly with orange accent):\n<div style=\"background: rgba(249, 115, 22, 0.08); border-left: 3px solid #f97316; padding: 12px; margin: 16px 0; border-radius: 4px;\">\n  <strong style=\"color: #fb923c; font-size: 14px;\">We have three convenient locations in:</strong>\n  <ul style=\"margin: 8px 0; padding-left: 20px; color: #e2e8f0;\">\n    <li>Old Bridge</li>\n    <li>Jersey City</li>\n    <li>South Plainfield</li>\n  </ul>\n</div>\n\nSTYLING GUIDELINES:\n- Use #f97316 (orange) for category headers and highlights\n- Use #fb923c (lighter orange) for headers on dark backgrounds\n- Use #e2e8f0 (light gray) for text on dark backgrounds\n- Use #94a3b8 (medium gray) for secondary/italic text\n- Use rgba(249, 115, 22, 0.08) for subtle orange-tinted backgrounds\n- For location boxes: dark orange-tinted background with orange left border\n- NO white backgrounds - use transparent or very subtle colored backgrounds\n- Add proper spacing with margin and padding\n- Line height: 1.6 for readability\n- Category headers: 14px (slightly larger than 13px body text)\n\nCOLOR PALETTE (ORANGE THEME):\n- Primary highlight: #f97316 (orange)\n- Light highlight: #fb923c (lighter orange)\n- Background tint: rgba(249, 115, 22, 0.08)\n- Text on dark: #e2e8f0 (light gray)\n- Secondary text: #94a3b8 (medium gray)\n\nIMPORTANT:\n- EVERY response must be wrapped in HTML with inline styles\n- Prioritize TOP/FEATURED services\n- Group services by category\n- Always mention \"many other pain and sports medicine related services\"\n- End with a helpful call-to-action`;\n\nconsole.log('\ud83c\udfe5 Healthcare Patient Care Concierge Prompt Built (HTML Mode)');\nconsole.log('\ud83d\udccb Top services count:', topServices.length);\nconsole.log('\ud83d\udccb All services count:', allServices.length);\nconsole.log('\ud83d\udcbe Paused Booking State:', pausedBookingState);\nconsole.log('\ud83d\udcbe Paused Booking Data:', pausedBookingData ? Object.keys(pausedBookingData) : 'none');\n\nreturn [{\n  json: {\n    ...input,\n    systemMessage: systemMessage,\n    userMessage: message,\n    demoContext: demoContext,\n    pausedBookingState: pausedBookingState,  // Explicitly pass through\n    pausedBookingData: pausedBookingData,    // Explicitly pass through\n    messageData: {\n      companyName: companyName,\n      agentName: agentName,\n      topServicesCount: topServices.length,\n      allServicesCount: allServices.length,\n      teamCount: teamMembers.length,\n      locationsCount: locations.length\n    }\n  },\n  pairedItem: 0  // \u2705 CRITICAL: Link output to input item for N8N data flow\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1056,
+        896
+      ],
+      "id": "c1f5cc5e-2121-4f3a-a396-cfdec270d8f3",
+      "name": "Healthcare Concierge Prompt Builder"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.intent }}",
+                    "rightValue": "booking",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "05954c99-a816-4be6-90ab-7c148b5d6f4c"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Booking"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        720,
+        576
+      ],
+      "id": "edbf185e-b079-4466-b3f4-fd96560dec51",
+      "name": "Route by Intent"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst input = items[0].json;\n\n// Get data from BOTH the LLM response AND the previous nodes\nconst llmInput = $input.first().json;\nconst promptBuilderData = $('Healthcare Concierge Prompt Builder').first().json;\nconst userMessage = promptBuilderData.userMessage || '';\nconst demoContext = promptBuilderData.demoContext || {};\nconst teamMembers = demoContext.teamMembers || [];\n\n// CRITICAL FIX: Get pausedBookingState from Prompt Builder's OUTPUT\n// (Prompt Builder should have passed it through in its return statement)\nconst pausedBookingState = promptBuilderData.pausedBookingState || llmInput.pausedBookingState || null;\nconst pausedBookingData = promptBuilderData.pausedBookingData || llmInput.pausedBookingData || null;\n\nconsole.log('\ud83d\udd0d Paused Booking State:', pausedBookingState);\nconsole.log('\ud83d\udd0d Paused Booking Data:', pausedBookingData ? Object.keys(pausedBookingData) : 'none');\n\nconsole.log('\ud83d\udd0d Healthcare Question Detector Input:', JSON.stringify(input, null, 2));\nconsole.log('\ud83d\udcac LLM Response:', input.message);\n\n// Medical keywords that require escalation\nconst medicalKeywords = [\n  'diagnose', 'diagnosis', 'treatment', 'medication', 'prescription',\n  'surgery', 'procedure recommend', 'cure', 'heal', 'prognosis',\n  'side effects', 'recovery time', 'medical advice', 'should i take',\n  'is it safe', 'is this normal', 'what should i do', 'doctor recommend'\n];\n\nconst isMedical = medicalKeywords.some(keyword =>\n  userMessage.toLowerCase().includes(keyword)\n);\n\nlet finalResponse = input.message;\nlet highlightedText = [];\nlet quickActions = [];\n\nif (isMedical && teamMembers.length > 0) {\n  const medicalStaff = teamMembers.find(member =>\n    member.role && (\n      member.role.toLowerCase().includes('nurse') ||\n      member.role.toLowerCase().includes('medical') ||\n      member.role.toLowerCase().includes('physician') ||\n      member.role.toLowerCase().includes('doctor')\n    )\n  ) || teamMembers[0];\n\n  const firstName = medicalStaff.first_name || medicalStaff.firstName || '';\n  const lastName = medicalStaff.last_name || medicalStaff.lastName || '';\n  const role = medicalStaff.role || 'medical professional';\n\n  finalResponse = input.message + `\\\n\\\nFor medical questions like this, I'd like to connect you with ${firstName} ${lastName}, our ${role}. Would you like ${firstName} to call you back?`;\n\n  highlightedText = [firstName, lastName];\n\n  // Include Resume Booking if booking was paused\n  if (pausedBookingState) {\n    quickActions = [\n      { label: 'Resume Booking', value: 'resume_booking' },\n      { label: 'Yes, please call me back', value: 'callback' },\n      { label: 'No, I\\'ll call the office', value: 'no_callback' }\n    ];\n  } else {\n    quickActions = [\n      { label: 'Yes, please call me back', value: 'callback' },\n      { label: \"No, I'll call the office\", value: 'no_callback' },\n      { label: 'Schedule an Appointment', value: \"I'd like to schedule an appointment.\" }\n    ];\n  }\n\n  console.log('\ud83c\udfe5 Medical question detected - escalation offered');\n} else {\n  // Include Resume Booking if booking was paused\n  if (pausedBookingState) {\n    quickActions = [\n      { label: 'Resume Booking', value: 'resume_booking' },\n      { label: 'Ask Another Question', value: 'continue' }\n    ];\n    console.log('\ud83d\udcac General question answered - Resume Booking available');\n  } else {\n    quickActions = [\n      { label: 'Schedule an Appointment', value: \"I'd like to schedule an appointment.\" },\n      { label: 'Ask Another Question', value: 'continue' }\n    ];\n    console.log('\ud83d\udcac General question answered');\n  }\n}\n\n// \ud83d\udea8 CRITICAL FIX: Store timestamp as ISO string in variable\nconst currentTimestamp = new Date().toISOString();\n\n// \ud83d\udea8 CRITICAL FIX: DO NOT return bookingState - it overwrites the active booking!\n// Only return pausedBookingState to preserve context for multiple Q&A rounds\nreturn items.map((item, index) => ({\n  json: {\n    message: finalResponse,\n    currentState: pausedBookingState ? 'paused' : 'complete',\n    highlightedText: highlightedText,\n    quickActions: quickActions,\n    demoContext: demoContext,\n    // \u274c DO NOT RETURN bookingState - it overwrites the active booking progress!\n    // \u274c DO NOT RETURN bookingData - preserve original booking data only in paused state\n    pausedBookingState: pausedBookingState,    // \u2705 Pass through paused state\n    pausedBookingData: pausedBookingData,      // \u2705 Pass through paused data\n    timestamp: currentTimestamp\n  },\n  pairedItem: index\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1744,
+        896
+      ],
+      "id": "1e78c92b-bc45-4b44-9a13-193ee8c577e3",
+      "name": "Healthcare Question Detector"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2032,
+        304
+      ],
+      "id": "0a1b802d-7ee3-4e7c-aa89-25668f325e1c",
+      "name": "Merge Responses"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "claude-3-5-sonnet-20241022",
+          "mode": "list",
+          "cachedResultName": "claude-3-5-sonnet-20241022"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{ $json.userMessage }}"
+            }
+          ]
+        },
+        "options": {
+          "system": "={{ $json.systemMessage }}",
+          "maxTokens": 1024
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.anthropic",
+      "typeVersion": 1,
+      "position": [
+        1216,
+        896
+      ],
+      "id": "82ce2c5c-3b92-460f-b628-2142e1edb3d4",
+      "name": "Message a model",
+      "credentials": {
+        "anthropicApi": {
+          "id": "ZYVWnjyCpnH03yoq",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n   * VALIDATION ENGINE MODULE\n   * Purpose: Centralized validation logic for all booking flows\n   * Reusable: YES - Works across ALL industries\n   */\n\n  // PHONE VALIDATION & FORMATTING\n  function validatePhone(input) {\n    const phonePattern =\n  /^(\\+?1[-.]?)?(\\()?([0-9]{3})(\\))?[-.]?([0-9]{3})[-.]?([0-9]{4})$|^([0-9]{10})$/;\n    const cleanMessage = input.replace(/[\\s\\-\\(\\)\\.]/g, '');\n    return phonePattern.test(cleanMessage);\n  }\n\n  function formatPhone(input) {\n    const cleanMessage = input.replace(/[\\s\\-\\(\\)\\.]/g, '');\n    let formattedPhone = cleanMessage;\n\n    if (cleanMessage.length === 10) {\n      formattedPhone = `+1${cleanMessage}`;\n    } else if (cleanMessage.startsWith('1') && cleanMessage.length === 11) {\n      formattedPhone = `+${cleanMessage}`;\n    } else if (cleanMessage.startsWith('+1')) {\n      formattedPhone = cleanMessage;\n    } else if (cleanMessage.startsWith('+') && cleanMessage.length === 12) {\n      formattedPhone = cleanMessage;\n    } else {\n      formattedPhone = `+1${cleanMessage.replace(/^\\+?1?/, '')}`;\n    }\n\n    return formattedPhone;\n  }\n\n  // EMAIL VALIDATION & CORRECTION\n  function validateEmail(input) {\n    const emailPattern = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;\n    return emailPattern.test(input);\n  }\n\n  function correctCommonEmailDomains(email) {\n    const commonDomains = {\n      'gmial.com': 'gmail.com',\n      'gmai.com': 'gmail.com',\n      'gmil.com': 'gmail.com',\n      'yahooo.com': 'yahoo.com',\n      'yaho.com': 'yahoo.com',\n      'hotmial.com': 'hotmail.com',\n      'hotmai.com': 'hotmail.com',\n      'outlok.com': 'outlook.com',\n      'outloo.com': 'outlook.com'\n    };\n\n    const parts = email.split('@');\n    if (parts.length === 2) {\n      const domain = parts[1].toLowerCase();\n      if (commonDomains[domain]) {\n        return `${parts[0]}@${commonDomains[domain]}`;\n      }\n    }\n\n    return email;\n  }\n\n  // NAME VALIDATION & FORMATTING\n  function validateFullName(input) {\n    const nameMatch = input.match(/^([A-Za-z]+)[\\s]+([A-Za-z]+)$/);\n    return nameMatch !== null;\n  }\n\n  function capitalizeFirstLetter(str) {\n    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();\n  }\n\n  function formatFullName(input) {\n    const nameMatch = input.match(/^([A-Za-z]+)[\\s]+([A-Za-z]+)$/);\n    if (nameMatch) {\n      const firstName = capitalizeFirstLetter(nameMatch[1]);\n      const lastName = capitalizeFirstLetter(nameMatch[2]);\n      return { firstName, lastName, fullName: `${firstName} ${lastName}` };\n    }\n    return null;\n  }\n\n  // DATE OF BIRTH VALIDATION & FORMATTING\n  function validateDateOfBirth(input) {\n    const formats = [\n      /^(0[1-9]|1[0-2])[\\/\\-](0[1-9]|[12][0-9]|3[01])[\\/\\-](19|20)\\d{2}$/,\n      /^(19|20)\\d{2}[\\/\\-](0[1-9]|1[0-2])[\\/\\-](0[1-9]|[12][0-9]|3[01])$/\n    ];\n\n    return formats.some(format => format.test(input));\n  }\n\n  function formatDateOfBirth(input) {\n    let month, day, year;\n\n    let match =\n  input.match(/^(0[1-9]|1[0-2])[\\/\\-](0[1-9]|[12][0-9]|3[01])[\\/\\-](19|20)\\d{2}$/);\n    if (match) {\n      month = match[1];\n      day = match[2];\n      year = match[3];\n      return `${month}/${day}/${year}`;\n    }\n\n    match =\n  input.match(/^(19|20)\\d{2}[\\/\\-](0[1-9]|1[0-2])[\\/\\-](0[1-9]|[12][0-9]|3[01])$/);\n    if (match) {\n      year = match[1] + match[2].slice(0, 2);\n      month = match[2].slice(2);\n      day = match[3];\n      return `${month}/${day}/${year}`;\n    }\n\n    return input;\n  }\n\n  // PAIN LEVEL VALIDATION\n  function validatePainLevel(input) {\n    const painLevel = parseInt(input);\n    return !isNaN(painLevel) && painLevel >= 1 && painLevel <= 10;\n  }\n\n  // POLICY HOLDER NAME VALIDATION\n  function validatePolicyHolderName(input) {\n    const nameMatch = input.match(/^([A-Za-z]+)[\\s]+([A-Za-z]+)$/);\n    return nameMatch !== null;\n  }\n\n  function formatPolicyHolderName(input) {\n    const nameMatch = input.match(/^([A-Za-z]+)[\\s]+([A-Za-z]+)$/);\n    if (nameMatch) {\n      return `${capitalizeFirstLetter(nameMatch[1])} \n  ${capitalizeFirstLetter(nameMatch[2])}`;\n    }\n    return input;\n  }\n\n  // UTILITY FUNCTIONS\n  function getRandomResponse(responses) {\n    return responses[Math.floor(Math.random() * responses.length)];\n  }\n\n  // EXPORT MODULE\n  return {\n    json: {\n      module: 'Validation-Engine',\n      version: '1.0.0',\n      functions: {\n        validatePhone,\n        formatPhone,\n        validateEmail,\n        correctCommonEmailDomains,\n        validateFullName,\n        formatFullName,\n        capitalizeFirstLetter,\n        validateDateOfBirth,\n        formatDateOfBirth,\n        validatePainLevel,\n        validatePolicyHolderName,\n        formatPolicyHolderName,\n        getRandomResponse\n      },\n      status: 'ready'\n    }\n  };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "ab75e74e-a2a7-4348-bd25-872e852e5198",
+      "name": "Validation-Engine"
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n   * STATE ROUTER MODULE\n   * Purpose: Main entry point - routes incoming messages to appropriate handlers\n   * This replaces the monolithic Complete State Manager\n   */\n\n  // Get input data from previous node\n  const inputData = $input.all();\n  const item = inputData[0].json;\n\n  // Extract key data from input\n  const message = item.message || '';\n  const bookingState = item.bookingState || item.currentState || item.nextState ||\n  'initial';\n  const bookingData = item.bookingData || item.collectedData || {};\n  const demoContext = item.demoContext || {};\n\n  console.log('\ud83d\udd00 STATE ROUTER - Incoming:', {\n    message,\n    bookingState,\n    bookingStateFromItem: item.bookingState,\n    currentStateFromItem: item.currentState,\n    nextStateFromItem: item.nextState,\n    hasBookingData: Object.keys(bookingData).length > 0,\n    bookingDataKeys: Object.keys(bookingData),\n    hasDemoContext: Object.keys(demoContext).length > 0\n  });\n\n  // Define state-to-module routing map\n  const STATE_ROUTING = {\n    // Patient Info states -> Module 3\n    'initial': 'patient-info',\n    'waiting_for_patient_type': 'patient-info',\n    'waiting_for_name': 'patient-info',\n    'waiting_for_dob': 'patient-info',\n\n    // Contact Info states -> Module 4\n    'waiting_for_phone': 'contact-info',\n    'waiting_for_email': 'contact-info',\n\n    // Medical Info states -> Module 5\n    'waiting_for_location': 'medical-info',\n    'waiting_for_service_selection': 'medical-info',\n    'waiting_for_pain_level': 'medical-info',\n    'waiting_for_symptoms': 'medical-info',\n\n    // Appointment Scheduling states -> Module 6\n    'waiting_for_insurance': 'appointment-scheduler',\n    'waiting_for_policy_holder_name': 'appointment-scheduler',\n    'waiting_for_policy_number': 'appointment-scheduler',\n    'waiting_for_group_number': 'appointment-scheduler',\n    'waiting_for_urgency': 'appointment-scheduler',\n    'waiting_for_time_preference': 'appointment-scheduler',\n    'calling_epic_api': 'appointment-scheduler',  // \ud83d\udea8 FIX: Added missing EHR call state\n    'error_no_slots': 'appointment-scheduler',  // \ud83d\udea8 FIX: Added error state\n    'waiting_for_day_selection': 'appointment-scheduler',\n    'generating_appointment_slots': 'appointment-scheduler',\n    'waiting_for_additional_info': 'appointment-scheduler',  // \ud83d\udea8 FIX: Added missing state\n    'collecting_additional_info': 'appointment-scheduler',  // \ud83d\udea8 FIX: Added missing state\n    'showing_summary': 'appointment-scheduler',  // \ud83d\udea8 FIX: Added summary state\n    'waiting_for_review_confirmation': 'appointment-scheduler',  // \ud83d\udea8 FIX: Added confirmation state\n    'handling_changes': 'appointment-scheduler',  // \ud83d\udea8 FIX: Added changes state\n    'appointment_confirmed': 'appointment-scheduler'\n  };\n\n  // Determine which module should handle this state\n  let targetModule = STATE_ROUTING[bookingState];\n\n  // \u26a0\ufe0f CRITICAL FIX: If state is not in routing map, determine by data collected\n  if (!targetModule) {\n    console.log('\u26a0\ufe0f Unknown state, determining module by collected data:',\n  bookingState);\n\n    // Check what data we have and route accordingly\n    if (!bookingData.patientType || !bookingData.patientName ||\n  !bookingData.dateOfBirth) {\n      targetModule = 'patient-info';\n      console.log('\u2192 Missing patient info, routing to patient-info');\n    } else if (!bookingData.phoneNumber || !bookingData.email) {\n      targetModule = 'contact-info';\n      console.log('\u2192 Missing contact info, routing to contact-info');\n    } else if (!bookingData.location || !bookingData.procedure || !bookingData.painLevel\n   || !bookingData.symptoms) {\n      targetModule = 'medical-info';\n      console.log('\u2192 Missing medical info, routing to medical-info');\n    } else {\n      targetModule = 'appointment-scheduler';\n      console.log('\u2192 All info collected, routing to appointment-scheduler');\n    }\n  }\n\n  // \u2705 CRITICAL FIX: Handle completion states\n  if (bookingState === 'appointment_confirmed') {\n    console.log(`\u2705 Booking complete! Routing to final response`);\n\n    // Return with special 'complete' flag\n    return {\n      json: {\n        message,\n        bookingState,\n        bookingData,\n        demoContext,\n        routedTo: 'complete',  // Special flag for completion\n        isComplete: true,      // Additional flag\n        routedFrom: 'state-router',\n        timestamp: new Date().toISOString()\n      },\n      pairedItem: 0  // \u2705 CRITICAL: Link output to input item for N8N data flow\n    };\n  }\n\n  console.log(`\u2705 Routing ${bookingState} \u2192 ${targetModule}`);\n\n  // Prepare data to pass to the target module\n  const routedData = {\n    message,\n    bookingState,\n    bookingData,\n    demoContext,\n    routedTo: targetModule,\n    routedFrom: 'state-router',\n    timestamp: new Date().toISOString()\n  };\n\n  // Return data with routing information\n  // N8N will use this to determine which node to execute next\n  return {\n    json: {\n      ...routedData,\n      // Add routing metadata\n      routing: {\n        currentState: bookingState,\n        targetModule: targetModule,\n        availableModules: Object.keys(STATE_ROUTING).reduce((acc, state) => {\n          const module = STATE_ROUTING[state];\n          if (!acc.includes(module)) acc.push(module);\n          return acc;\n        }, [])\n      }\n    },\n    pairedItem: 0  // \u2705 CRITICAL: Link output to input item for N8N data flow\n  };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        464,
+        304
+      ],
+      "id": "1c7ff73c-2f4c-418b-bea8-b0d79b0fea50",
+      "name": "State-Router"
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * PATIENT INFO COLLECTOR MODULE\n * Handles: Initial booking request, patient type, name, date of birth, phone\n * States: initial, waiting_for_patient_type, waiting_for_name, waiting_for_dob, waiting_for_phone\n */\n\n// Get input data\nlet inputData;\ntry {\n  inputData = $input.all();\n} catch (e) {\n  inputData = [{\n    json: {\n      message: 'I want to schedule an appointment',\n      bookingState: 'initial',\n      bookingData: {},\n      demoContext: {}\n    }\n  }];\n}\n\nconst item = inputData[0].json;\nconst message = item.message || '';\nconst bookingState = item.bookingState || 'initial';\nconst bookingData = item.bookingData || {};\nconst demoContext = item.demoContext || {};\n\nlet response = '';\nlet nextState = bookingState;\nlet collectedData = { ...bookingData };\nlet highlightedText = [];\nlet quickActions = [];\n\nconsole.log('\ud83d\udc64 PATIENT INFO COLLECTOR:', { bookingState, message });\n\n// Utility functions\nfunction getRandomResponse(responses) {\n  return responses[Math.floor(Math.random() * responses.length)];\n}\n\nfunction validateFullName(input) {\n  const nameMatch = input.match(/^([A-Za-z]+)[\\s]+([A-Za-z]+)$/);\n  return nameMatch !== null;\n}\n\nfunction capitalizeFirstLetter(str) {\n  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();\n}\n\nfunction validateDateOfBirth(input) {\n  const datePatterns = [\n    /^(\\d{1,2})\\/(\\d{1,2})\\/(\\d{4})$/,\n    /^(\\d{1,2})-(\\d{1,2})-(\\d{4})$/\n  ];\n  for (let pattern of datePatterns) {\n    if (input.match(pattern)) return true;\n  }\n  return false;\n}\n\nfunction formatDateOfBirth(input) {\n  const slashMatch = input.match(/^(\\d{1,2})\\/(\\d{1,2})\\/(\\d{4})$/);\n  if (slashMatch) {\n    const month = slashMatch[1].padStart(2, '0');\n    const day = slashMatch[2].padStart(2, '0');\n    return `${month}/${day}/${slashMatch[3]}`;\n  }\n  const dashMatch = input.match(/^(\\d{1,2})-(\\d{1,2})-(\\d{4})$/);\n  if (dashMatch) {\n    const month = dashMatch[1].padStart(2, '0');\n    const day = dashMatch[2].padStart(2, '0');\n    return `${month}/${day}/${dashMatch[3]}`;\n  }\n  return input;\n}\n\n// STATE HANDLERS\nswitch (bookingState) {\n\n  case 'initial':\n    const bookingKeywords = ['appointment', 'schedule', 'book', 'visit', 'consultation', 'booking'];\n    const isBookingRequest = bookingKeywords.some(keyword =>\n      message.toLowerCase().includes(keyword)\n    );\n\n    if (isBookingRequest) {\n      const patientTypeResponses = [\n        `I'm so glad you reached out! I'd be honored to help you schedule your appointment. I'm here to make this process as smooth and comfortable as possible for you. May I ask, are you a new patient or an existing patient with us?`,\n        `Thank you for contacting us! I'm excited to assist you with scheduling your appointment today. I want to ensure we give you the best care possible. Could you please let me know if you're a new patient or an existing patient?`,\n        `Welcome! I'm delighted to help you get your appointment scheduled. I'm committed to making this experience easy and stress-free for you. To get started, may I ask if you're a new patient or if you've visited us before?`,\n        `I appreciate you reaching out to us today. I'm here to take great care of you and get your appointment set up quickly. To begin, could you please share whether you're a new patient or an existing patient?`,\n        `Hello! I'm so happy to help you schedule your appointment. I want to make sure we provide you with excellent service from the very start. May I please know if you're a new patient or if you're already a patient with us?`,\n        `Thank you for choosing us! I'm dedicated to making your appointment scheduling as simple as possible. I'm here to help you every step of the way. Could you tell me if you're a new patient or an existing patient?`,\n        `I'm thrilled to assist you with your appointment today! I want to ensure everything goes smoothly for you. To get started, may I ask if you're joining us as a new patient or if you've been with us before?`,\n        `Welcome! I'm here to help you schedule your appointment with care and attention. I'm committed to making this process easy for you. Could you please let me know if you're a new patient or an existing patient?`,\n        `I'm so pleased you've contacted us! I'd love to help you get your appointment scheduled right away. I'm here to support you through this process. May I ask if you're a new patient or if you're already part of our patient family?`,\n        `Thank you for reaching out to us today! I'm excited to help you schedule your appointment and make this as convenient as possible for you. To begin, could you please share if you're a new patient or an existing patient?`\n      ];\n\n      response = getRandomResponse(patientTypeResponses);\n      nextState = 'waiting_for_patient_type';\n      highlightedText = ['new patient', 'existing patient'];\n      quickActions = [\n        { text: 'New Patient', action: 'new' },\n        { text: 'Existing Patient', action: 'existing' }\n      ];\n    } else {\n      response = `Hello! How may I help you today?`;\n      nextState = 'initial';\n    }\n    break;\n\n  case 'waiting_for_patient_type':\n    const patientType = message.toLowerCase().includes('new') ? 'new' :\n                       message.toLowerCase().includes('existing') ? 'existing' :\n                       message;\n\n    collectedData.patientType = patientType;\n\n    const nameResponses = [\n      `Thank you so much for letting me know you're a ${patientType} patient. I'm here to make this as easy as possible for you. May I please have your first name and last name?`,\n      `Wonderful! I'm so glad you're ${patientType === 'new' ? 'joining us' : 'continuing your care with us'}. To get started, could you please share your first name and last name with me?`,\n      `Perfect! Thank you for that information. I'm here to help you every step of the way. May I please have your first name and last name?`,\n      `Thank you! I appreciate you sharing that with me. To continue, could you please provide your first name and last name?`,\n      `Excellent! I'm excited to help you as a ${patientType} patient. May I please have your first name and last name so we can get started?`,\n      `Thank you for letting me know! I'm dedicated to making this process smooth for you. Could you please share your first name and last name?`,\n      `Great! I'm here to take care of everything for you. To begin, may I please have your first name and last name?`,\n      `I appreciate that information! I'm committed to providing you with excellent service. Could you please provide your first name and last name?`,\n      `Thank you! I'm so happy to assist you as a ${patientType} patient. May I please have your first name and last name?`,\n      `Wonderful! I'm here to help make this easy for you. To get started, could you please share your first name and last name with me?`\n    ];\n\n    response = getRandomResponse(nameResponses);\n    nextState = 'waiting_for_name';\n    highlightedText = ['first name', 'last name'];\n    quickActions = [];\n    break;\n\n  case 'waiting_for_name':\n    if (validateFullName(message)) {\n      const nameMatch = message.match(/^([A-Za-z]+)[\\s]+([A-Za-z]+)$/);\n      const firstName = capitalizeFirstLetter(nameMatch[1]);\n      const lastName = capitalizeFirstLetter(nameMatch[2]);\n\n      collectedData.firstName = firstName;\n      collectedData.lastName = lastName;\n      collectedData.patientName = `${firstName} ${lastName}`;\n\n      const dobResponses = [\n        `Thank you, ${firstName}! It's wonderful to meet you. I have your name as ${firstName} ${lastName}. May I please have your date of birth? You can provide it in MM/DD/YYYY format.`,\n        `Perfect! I've got ${firstName} ${lastName}. Thank you for that. Now, could you please share your date of birth with me? Please use MM/DD/YYYY format.`,\n        `Excellent! Thank you, ${firstName}. I have your name recorded as ${firstName} ${lastName}. May I please have your date of birth? Example: MM/DD/YYYY`,\n        `Thank you so much! I have ${firstName} ${lastName}. To continue, could you please provide your date of birth? Please use MM/DD/YYYY format.`,\n        `Great! I've noted ${firstName} ${lastName}. I appreciate your patience. May I please have your date of birth? Example: 03/15/1985`,\n        `Perfect, ${firstName}! I have your name as ${firstName} ${lastName}. Now, could you please share your date of birth with me? Please use MM/DD/YYYY format.`,\n        `Thank you! I've got ${firstName} ${lastName} recorded. May I please have your date of birth? You can provide it as MM/DD/YYYY.`,\n        `Wonderful! I have ${firstName} ${lastName}. Thank you for that information. Could you please provide your date of birth? Example: MM/DD/YYYY`,\n        `Excellent, ${firstName}! I've recorded your name as ${firstName} ${lastName}. May I please have your date of birth? Please use MM/DD/YYYY format.`,\n        `Thank you so much! I have your name as ${firstName} ${lastName}. To continue, could you please share your date of birth? Example: 03/15/1985`\n      ];\n\n      response = getRandomResponse(dobResponses);\n      nextState = 'waiting_for_dob';\n      highlightedText = ['date of birth', 'MM/DD/YYYY'];\n      quickActions = [];\n    } else {\n      const nameClarificationResponses = [\n        `I want to make sure I get your name exactly right. Could you please provide your first name and last name? For example: John Smith`,\n        `To ensure accuracy, may I please have your first name and last name? Example: John Smith`,\n        `I'd like to make certain I have your name correct. Could you please share your first name and last name? For example: John Smith`,\n        `Thank you! To make sure I record your name properly, could you please provide your first name and last name? Example: John Smith`,\n        `I appreciate your patience. May I please have your first name and last name? For example: John Smith`,\n        `To ensure I get this right, could you please share your first name and last name with me? Example: John Smith`,\n        `I want to make sure I have your name correctly. May I please have your first name and last name? For example: John Smith`,\n        `Thank you! To confirm, could you please provide your first name and last name? Example: John Smith`,\n        `I'd like to ensure accuracy. May I please have your first name and last name? For example: John Smith`,\n        `To make certain I record your name properly, could you please share your first name and last name? Example: John Smith`\n      ];\n\n      response = getRandomResponse(nameClarificationResponses);\n      nextState = 'waiting_for_name';\n      highlightedText = ['first name', 'last name'];\n      quickActions = [];\n    }\n    break;\n\n  case 'waiting_for_dob':\n    if (validateDateOfBirth(message)) {\n      collectedData.dateOfBirth = formatDateOfBirth(message);\n      collectedData.dob = formatDateOfBirth(message);\n\n      const phoneResponses = [\n        `Perfect! I have your date of birth recorded. Thank you for that. May I please have your phone number so we can contact you about your appointment?`,\n        `Excellent! I've got your date of birth. Thank you. Now, could you please share your phone number with me?`,\n        `Thank you! Your date of birth has been noted. May I please have your phone number?`,\n        `Great! I have your date of birth recorded. To continue, could you please provide your phone number?`,\n        `Perfect! I've got that information. Thank you. May I please have your phone number so we can reach you?`,\n        `Wonderful! Your date of birth is recorded. Could you please share your phone number with me?`,\n        `Excellent! I have your date of birth. Thank you for that. May I please have your phone number?`,\n        `Thank you! I've noted your date of birth. Now, could you please provide your phone number?`,\n        `Great! Your date of birth has been recorded. May I please have your phone number so we can contact you?`,\n        `Perfect! I have that information. Thank you. Could you please share your phone number with me?`\n      ];\n\n      response = getRandomResponse(phoneResponses);\n      nextState = 'waiting_for_phone';\n      highlightedText = ['phone number'];\n      quickActions = [];\n    } else {\n      const dobClarificationResponses = [\n        `I need a valid date of birth to continue. Could you please provide it in MM/DD/YYYY format? For example: 03/15/1985`,\n        `To ensure accuracy, may I please have your date of birth in MM/DD/YYYY format? Example: 03/15/1985`,\n        `I'd like to make certain I have the correct date. Could you please share your date of birth as MM/DD/YYYY? Example: 03/15/1985`,\n        `Thank you for your patience. May I please have your date of birth in MM/DD/YYYY format? For example: 03/15/1985`,\n        `To make sure I record this correctly, could you please provide your date of birth as MM/DD/YYYY? Example: 03/15/1985`,\n        `I want to ensure accuracy. May I please have your date of birth in MM/DD/YYYY format? For example: 03/15/1985`,\n        `Thank you! To continue, could you please share your date of birth as MM/DD/YYYY? Example: 03/15/1985`,\n        `I appreciate your understanding. May I please have your date of birth in MM/DD/YYYY format? For example: 03/15/1985`,\n        `To make certain I get this right, could you please provide your date of birth as MM/DD/YYYY? Example: 03/15/1985`,\n        `Thank you for your patience. May I please have your date of birth in MM/DD/YYYY format? For example: 03/15/1985`\n      ];\n\n      response = getRandomResponse(dobClarificationResponses);\n      nextState = 'waiting_for_dob';\n      highlightedText = ['MM/DD/YYYY'];\n      quickActions = [];\n    }\n    break;\n\n  default:\n    response = `I'm here to help you schedule an appointment. Would you like to get started?`;\n    nextState = 'initial';\n    break;\n}\n\n// \ud83d\udea8 FIX: Store timestamp as ISO string in variable\nconst currentTimestamp = new Date().toISOString();\n\n// Return response data\nreturn {\n  json: {\n    message: response,\n    currentState: nextState,\n    bookingState: nextState,\n    collectedData: collectedData,\n    bookingData: collectedData,\n    highlightedText: highlightedText,\n    quickActions: quickActions,\n    demoContext: demoContext,\n    timestamp: currentTimestamp,  // \u2705 ISO string (not Date object)\n    module: 'patient-info-collector'\n  },\n  pairedItem: 0  // \u2705 CRITICAL: Link output to input item for N8N data flow\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        -48
+      ],
+      "id": "c324b690-9ed3-43e9-9b3f-badf8e3ae3e6",
+      "name": "Patient Info Collector"
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * CONTACT INFO COLLECTOR MODULE\n * Handles: Phone number and email validation and collection\n * States: waiting_for_phone, waiting_for_email\n */\n\n// Get input data\nlet inputData;\ntry {\n  inputData = $input.all();\n} catch (e) {\n  inputData = [{\n    json: {\n      message: '5038041234',\n      bookingState: 'waiting_for_phone',\n      bookingData: { firstName: 'John', lastName: 'Smith', dateOfBirth: '01/15/1990' },\n      demoContext: {}\n    }\n  }];\n}\n\nconst item = inputData[0].json;\nconst message = item.message || '';\nconst bookingState = item.bookingState || 'waiting_for_phone';\nconst bookingData = item.bookingData || {};\nconst demoContext = item.demoContext || {};\n\nlet response = '';\nlet nextState = bookingState;\nlet collectedData = { ...bookingData };\nlet highlightedText = [];\nlet quickActions = [];\n\nconsole.log('\ud83d\udcde CONTACT INFO COLLECTOR:', { bookingState, message });\n\n// Utility functions\nfunction getRandomResponse(responses) {\n  return responses[Math.floor(Math.random() * responses.length)];\n}\n\nfunction parseIfString(data) {\n  if (typeof data === 'string') {\n    try {\n      return JSON.parse(data);\n    } catch (e) {\n      console.log('Failed to parse JSON:', e);\n      return [];\n    }\n  }\n  return data;\n}\n\n// Phone validation\nfunction validatePhone(input) {\n  const phonePattern = /^(\\+?1[-.]?)?(\\()?([0-9]{3})(\\))?[-.]?([0-9]{3})[-.]?([0-9]{4})$|^([0-9]{10})$/;\n  const cleanMessage = input.replace(/[\\s\\-\\(\\)\\.]/g, '');\n  return phonePattern.test(cleanMessage);\n}\n\nfunction formatPhone(input) {\n  const cleanMessage = input.replace(/[\\s\\-\\(\\)\\.]/g, '');\n  let formattedPhone = cleanMessage;\n\n  if (cleanMessage.length === 10) {\n    formattedPhone = `+1${cleanMessage}`;\n  } else if (cleanMessage.startsWith('1') && cleanMessage.length === 11) {\n    formattedPhone = `+${cleanMessage}`;\n  } else if (cleanMessage.startsWith('+1')) {\n    formattedPhone = cleanMessage;\n  } else if (cleanMessage.startsWith('+') && cleanMessage.length === 12) {\n    formattedPhone = cleanMessage;\n  } else {\n    formattedPhone = `+1${cleanMessage.replace(/^\\+?1?/, '')}`;\n  }\n\n  return formattedPhone;\n}\n\n// Email validation\nfunction validateEmail(input) {\n  const emailPattern = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;\n  return emailPattern.test(input);\n}\n\nfunction correctCommonEmailDomains(email) {\n  const commonDomains = {\n    'gmial.com': 'gmail.com',\n    'gmai.com': 'gmail.com',\n    'gmil.com': 'gmail.com',\n    'yahooo.com': 'yahoo.com',\n    'yaho.com': 'yahoo.com',\n    'hotmial.com': 'hotmail.com',\n    'hotmai.com': 'hotmail.com',\n    'outlok.com': 'outlook.com',\n    'outloo.com': 'outlook.com'\n  };\n\n  const parts = email.split('@');\n  if (parts.length === 2) {\n    const domain = parts[1].toLowerCase();\n    if (commonDomains[domain]) {\n      return `${parts[0]}@${commonDomains[domain]}`;\n    }\n  }\n\n  return email;\n}\n\n// STATE HANDLERS\nswitch (bookingState) {\n\n  case 'waiting_for_phone':\n    if (validatePhone(message)) {\n      const formattedPhone = formatPhone(message);\n      collectedData.phoneNumber = formattedPhone;\n      collectedData.phone = formattedPhone;\n\n      const emailResponses = [\n        `Perfect! I have your phone number. Thank you for that. May I please have your email address so we can send you appointment confirmations?`,\n        `Excellent! Your phone number is recorded. Could you please share your email address with me?`,\n        `Thank you! I've got your phone number. May I please have your email address?`,\n        `Great! I have your phone number noted. To continue, could you please provide your email address?`,\n        `Wonderful! Your phone number is recorded. May I please have your email address so we can keep you updated?`,\n        `Perfect! I've got your phone number. Thank you. Could you please share your email address with me?`,\n        `Excellent! I have your phone number. May I please have your email address?`,\n        `Thank you! Your phone number has been noted. Could you please provide your email address?`,\n        `Great! I've recorded your phone number. May I please have your email address so we can communicate with you?`,\n        `Perfect! I have your phone number. Thank you for that. Could you please share your email address?`\n      ];\n\n      response = getRandomResponse(emailResponses);\n      nextState = 'waiting_for_email';\n      highlightedText = ['email address'];\n      quickActions = [];\n    } else {\n      const phoneClarificationResponses = [\n        `I want to make sure I have the correct phone number. Could you please provide your 10-digit phone number? For example: 503-804-1234`,\n        `To ensure accuracy, may I please have a valid phone number? Example: (503) 804-1234`,\n        `I'd like to make certain I get your number right. Could you please share a valid phone number? Example: 5038041234`,\n        `Thank you for your patience. May I please have a valid 10-digit phone number? For example: 503-804-1234`,\n        `To make sure I record this correctly, could you please provide a valid phone number? Example: (503) 804-1234`,\n        `I want to ensure we can reach you. May I please have a valid phone number? For example: 5038041234`,\n        `Thank you! To continue, could you please share a valid 10-digit phone number? Example: 503-804-1234`,\n        `I appreciate your understanding. May I please have a valid phone number? For example: (503) 804-1234`,\n        `To make certain I can contact you, could you please provide a valid phone number? Example: 5038041234`,\n        `Thank you for your patience. May I please have a valid 10-digit phone number? For example: 503-804-1234`\n      ];\n\n      response = getRandomResponse(phoneClarificationResponses);\n      nextState = 'waiting_for_phone';\n      highlightedText = ['valid phone number'];\n      quickActions = [];\n    }\n    break;\n\n  case 'waiting_for_email':\n    const correctedEmail = correctCommonEmailDomains(message);\n\n    if (validateEmail(correctedEmail)) {\n      collectedData.email = correctedEmail.toLowerCase();\n\n      const locationResponses = [\n        `Perfect! I have your email address. Thank you so much. Now, which of our locations would be most convenient for you to visit?`,\n        `Excellent! Your email is recorded. Thank you. Which location would you prefer for your appointment?`,\n        `Thank you! I've got your email address. May I ask which of our locations would be most convenient for you?`,\n        `Great! I have your email noted. Which location would work best for you?`,\n        `Wonderful! Your email is recorded. Thank you. Which of our locations would you like to visit?`,\n        `Perfect! I've got your email address. Which location would be most convenient for your appointment?`,\n        `Excellent! I have your email. Thank you for that. Which of our locations would you prefer to visit?`,\n        `Thank you! Your email has been recorded. Which location would be best for you?`,\n        `Great! I've noted your email address. Which of our locations would be most convenient for you?`,\n        `Perfect! I have your email. Thank you so much. Which location would you like to visit for your appointment?`\n      ];\n\n      response = getRandomResponse(locationResponses);\n      nextState = 'waiting_for_location';\n      highlightedText = ['locations', 'location'];\n\n      // Add location buttons\n      const locations = parseIfString(demoContext.locations || []);\n      if (Array.isArray(locations) && locations.length > 0) {\n        quickActions = locations.map(loc => ({\n          text: loc.city || loc.name || loc,\n          action: loc.city || loc.name || loc\n        }));\n      } else {\n        quickActions = [];\n      }\n    } else {\n      const emailClarificationResponses = [\n        `I want to make sure I have your email address correct. Could you please provide a valid email address? For example: john.doe@example.com`,\n        `To ensure accuracy, may I please have a valid email address? Example: jane.smith@gmail.com`,\n        `I'd like to make certain I get this right. Could you please share a valid email address? For example: michael@yahoo.com`,\n        `Thank you for your patience. May I please have a valid email address? Example: john.doe@example.com`,\n        `To make sure I record this correctly, could you please provide a valid email address? For example: jane.smith@gmail.com`,\n        `I want to ensure we can reach you. May I please have a valid email address? Example: michael@yahoo.com`,\n        `Thank you! To continue, could you please share a valid email address? For example: john.doe@example.com`,\n        `I appreciate your understanding. May I please have a valid email address? Example: jane.smith@gmail.com`,\n        `To make certain I can contact you, could you please provide a valid email address? For example: michael@yahoo.com`,\n        `Thank you for your patience. May I please have a valid email address? Example: john.doe@example.com`\n      ];\n\n      response = getRandomResponse(emailClarificationResponses);\n      nextState = 'waiting_for_email';\n      highlightedText = ['valid email address'];\n      quickActions = [];\n    }\n    break;\n\n  default:\n    response = `Let me help you with your contact information.`;\n    nextState = 'waiting_for_phone';\n    break;\n}\n\n// \ud83d\udea8 FIX: Store timestamp as ISO string in variable\nconst currentTimestamp = new Date().toISOString();\n\n// Return response data\nreturn {\n  json: {\n    message: response,\n    currentState: nextState,\n    bookingState: nextState,\n    collectedData: collectedData,\n    bookingData: collectedData,\n    highlightedText: highlightedText,\n    quickActions: quickActions,\n    demoContext: demoContext,\n    timestamp: currentTimestamp,  // \u2705 ISO string (not Date object)\n    module: 'contact-info-collector'\n  },\n  pairedItem: 0  // \u2705 CRITICAL: Link output to input item for N8N data flow\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        128
+      ],
+      "id": "d88b61ee-69b9-4c4c-97b7-d93552b8924c",
+      "name": "Contact Info Collector"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get input data\nlet inputData;\ntry {\n  inputData = $input.all();\n} catch (e) {\n  inputData = [{\n    json: {\n      message: 'Old Bridge',\n      bookingState: 'waiting_for_location',\n      bookingData: { firstName: 'John', lastName: 'Smith', email: 'john@test.com' },\n      demoContext: { services: ['Spinal Conditions', 'Sports Medicine'] }\n    }\n  }];\n}\n\nconst item = inputData[0].json;\nconst message = item.message || '';\nconst bookingState = item.bookingState || 'waiting_for_location';\nconst bookingData = item.bookingData || {};\nconst demoContext = item.demoContext || {};\n\nlet response = '';\nlet nextState = bookingState;\nlet collectedData = { ...bookingData };\nlet highlightedText = [];\nlet quickActions = [];\n\nconsole.log('\ud83c\udfe5 MEDICAL INFO COLLECTOR:', { bookingState, message });\n\n// Utility functions\nfunction getRandomResponse(responses) {\n  return responses[Math.floor(Math.random() * responses.length)];\n}\n\nfunction parseIfString(data) {\n  if (typeof data === 'string') {\n    try {\n      return JSON.parse(data);\n    } catch (e) {\n      console.log('Failed to parse JSON:', e);\n      return [];\n    }\n  }\n  return data;\n}\n\nfunction validatePainLevel(input) {\n  const painLevel = parseInt(input);\n  return !isNaN(painLevel) && painLevel >= 1 && painLevel <= 10;\n}\n\n// STATE HANDLERS\nswitch (bookingState) {\n\n  case 'waiting_for_location':\n    // Proactive location prompt when entering state with empty message\n    if (!message || message.trim() === '') {\n      const locationPromptResponses = [\n        `Thank you so much for that information. Now, which of our locations would be most convenient for you to visit?`,\n        `Perfect! I appreciate you sharing that with me. Which location would work best for your appointment?`,\n        `Excellent! Thank you. May I ask which of our locations would be most convenient for you?`,\n        `Great! I have that information. Which location would you prefer to visit?`,\n        `Wonderful! Thank you for providing those details. Which of our locations would be easiest for you to get to?`,\n        `Perfect! I've got that noted. Which location would be most convenient for your appointment?`,\n        `Thank you! I appreciate that information. Which of our locations would you like to visit?`,\n        `Excellent! I have that recorded. Which location would work best for you?`,\n        `Great! Thank you for sharing that. Which of our locations would be most convenient for you?`,\n        `Wonderful! I've noted that information. Which location would you prefer for your visit?`\n      ];\n\n      response = getRandomResponse(locationPromptResponses);\n      nextState = 'waiting_for_location';\n      highlightedText = ['locations', 'location'];\n\n      // Add location buttons\n      const locations = parseIfString(demoContext.locations || []);\n      if (Array.isArray(locations) && locations.length > 0) {\n        quickActions = locations.map(loc => ({\n          text: loc.city || loc.name || loc,\n          action: loc.city || loc.name || loc\n        }));\n      } else {\n        quickActions = [];\n      }\n    } else {\n      // Process location selection\n      collectedData.location = message;\n\n      const painLevelResponses = [\n        `Perfect! I have your location as ${message}. Thank you for that. Now, to help us understand your needs better, could you please rate your current pain level on a scale of 1 to 10, with 10 being the most severe?`,\n        `Excellent! ${message} is noted. Thank you. May I ask you to rate your pain on a scale of 1 to 10, where 10 represents the most severe pain?`,\n        `Thank you! I've recorded ${message} as your preferred location. Could you please share your pain level from 1 to 10, with 10 being the worst pain you could imagine?`,\n        `Great! I have ${message}. Thank you for that. To help us prepare for your visit, how would you rate your pain on a scale of 1 to 10, with 10 being extremely severe?`,\n        `Wonderful! ${message} is your selected location. May I please have your pain level on a scale of 1 to 10, where 10 is the most intense pain?`,\n        `Perfect! I've got ${message}. Thank you. Could you please rate your current pain from 1 to 10, with 10 representing the highest level of pain?`,\n        `Excellent! ${message} is noted as your location. May I ask how you would rate your pain on a scale of 1 to 10, with 10 being the most severe?`,\n        `Thank you! I have ${message} recorded. Could you please share your pain level from 1 to 10, where 10 is the worst pain?`,\n        `Great! ${message} is your preferred location. Thank you. How would you rate your pain on a scale of 1 to 10, with 10 being extremely severe?`,\n        `Wonderful! I've noted ${message}. May I please have your pain level from 1 to 10, with 10 representing the most intense pain?`\n      ];\n\n      response = getRandomResponse(painLevelResponses);\n      nextState = 'waiting_for_pain_level';\n      highlightedText = ['1 to 10', 'scale of 1 to 10'];\n\n      // Pain level buttons 1-10\n      quickActions = Array.from({length: 10}, (_, i) => ({\n        text: `${i + 1}`,\n        action: `${i + 1}`\n      }));\n    }\n    break;\n\n  case 'waiting_for_pain_level':\n    if (validatePainLevel(message)) {\n      const painLevel = parseInt(message);\n      collectedData.painLevel = painLevel;\n\n      // Empathetic response based on pain level\n      let empathyResponse = '';\n      if (painLevel >= 8) {\n        empathyResponse = `I'm so sorry to hear you're experiencing such severe discomfort. I want you to know that we're here to help you, and we'll do everything we can to get you the care you need as quickly as possible. `;\n      } else if (painLevel >= 5) {\n        empathyResponse = `I understand you're dealing with significant pain, and I want to assure you that we're committed to helping you feel better. `;\n      } else {\n        empathyResponse = `Thank you for sharing that with me. I appreciate you providing this information. `;\n      }\n\n      const symptomsResponses = [\n        `${empathyResponse}Could you please describe your symptoms in a bit more detail? This will help us provide you with the best possible care.`,\n        `${empathyResponse}May I ask you to share more about your symptoms? Any details you can provide will be very helpful for your appointment.`,\n        `${empathyResponse}Could you tell me more about your symptoms? This information is important to ensure we're fully prepared for your visit.`,\n        `${empathyResponse}Would you mind describing your symptoms in more detail? The more we know, the better we can help you.`,\n        `${empathyResponse}May I please have a more detailed description of your symptoms? This will help us give you the best care possible.`,\n        `${empathyResponse}Could you share more about your symptoms with me? Any additional information will be valuable for your appointment.`,\n        `${empathyResponse}Would you please describe your symptoms in more detail? This helps us prepare to give you excellent care.`,\n        `${empathyResponse}May I ask for more information about your symptoms? The details you provide will help us serve you better.`,\n        `${empathyResponse}Could you tell me more about your symptoms? This information is very important for your visit.`,\n        `${empathyResponse}Would you mind sharing more details about your symptoms? This will help us ensure you receive the best possible care.`\n      ];\n\n      response = getRandomResponse(symptomsResponses);\n      nextState = 'waiting_for_symptoms';\n      highlightedText = ['symptoms'];\n      quickActions = [];\n    } else {\n      const painClarificationResponses = [\n        `I want to make sure I understand your pain level correctly. Could you please provide a number from 1 to 10 to describe your pain? For example, 1 is minimal pain and 10 is the most severe.`,\n        `To ensure accuracy, may I please have a pain rating from 1 (minimal pain) to 10 (most severe pain)?`,\n        `I'd like to make certain I get this right. Could you please rate your pain on a scale of 1 to 10, where 1 is very mild and 10 is extremely severe?`,\n        `Thank you for your patience. May I please have a number from 1 to 10 that represents your current pain level?`,\n        `To make sure I record this correctly, could you please provide a pain level between 1 and 10? 1 means minimal pain, and 10 means the worst pain.`,\n        `I want to ensure we understand your pain level. May I please have a rating from 1 (very mild) to 10 (extremely severe)?`,\n        `Thank you! To continue, could you please share a number from 1 to 10 that describes your pain level?`,\n        `I appreciate your understanding. May I please have a valid pain rating between 1 and 10?`,\n        `To make certain I get this right, could you please provide a number from 1 to 10 to rate your pain?`,\n        `Thank you for your patience. May I please have a pain level from 1 (minimal) to 10 (most severe)?`\n      ];\n\n      response = getRandomResponse(painClarificationResponses);\n      nextState = 'waiting_for_pain_level';\n      highlightedText = ['1 and 10', '1 to 10'];\n\n      // Re-show pain level buttons\n      quickActions = Array.from({length: 10}, (_, i) => ({\n        text: `${i + 1}`,\n        action: `${i + 1}`\n      }));\n    }\n    break;\n\n  case 'waiting_for_symptoms':\n    if (message.length < 10) {\n      const symptomsClarificationResponses = [\n        `I want to make sure we have all the information we need to help you. Could you please provide a bit more detail about your symptoms?`,\n        `To ensure we're fully prepared for your visit, may I ask for a more detailed description of what you're experiencing?`,\n        `I'd like to make certain we understand your situation completely. Could you describe your symptoms in more detail?`,\n        `Thank you! To help us give you the best care, could you please share more details about what you're experiencing?`,\n        `I appreciate you sharing that. May I ask for a bit more information about your symptoms to ensure we can help you properly?`,\n        `To make sure we're ready to assist you, could you please provide more details about what you're going through?`,\n        `I want to ensure we understand your needs fully. May I please have a more detailed description of your symptoms?`,\n        `Thank you for that information. Could you share a bit more about what you're experiencing so we can prepare for your visit?`,\n        `To help us provide you with excellent care, may I ask for more details about your symptoms?`,\n        `I appreciate you sharing with me. Could you please describe your symptoms in a bit more detail?`\n      ];\n\n      response = getRandomResponse(symptomsClarificationResponses);\n      nextState = 'waiting_for_symptoms';\n      highlightedText = ['more detail'];\n      quickActions = [];\n    } else {\n      collectedData.symptoms = message;\n\n      const serviceResponses = [\n        `Thank you so much for sharing those details. I really appreciate it. Now, which service or procedure are you interested in for your appointment?`,\n        `I appreciate you providing that information. Thank you. What type of service would you like to schedule?`,\n        `Thank you for sharing that with me. Which of our services would best address your needs?`,\n        `I'm grateful for those details. Thank you. Which service or procedure would you like to schedule?`,\n        `Thank you! I have that information noted. What type of service are you interested in?`,\n        `I appreciate you taking the time to explain that. Which of our services would be most helpful for you?`,\n        `Thank you so much for providing those details. Which service or procedure would you like to book?`,\n        `I'm thankful for that information. What type of service would best meet your needs?`,\n        `Thank you for sharing. Which of our services or procedures are you interested in?`,\n        `I appreciate those details very much. Thank you. Which service would you like to schedule?`\n      ];\n\n      response = getRandomResponse(serviceResponses);\n      nextState = 'waiting_for_service_selection';\n      highlightedText = ['service', 'procedure'];\n\n      // Service buttons (top 5 + \"Other\")\n      const services = parseIfString(demoContext.services || demoContext.allServices || []);\n      if (Array.isArray(services)) {\n        const displayServices = services.slice(0, 5);\n        quickActions = displayServices.map(service => ({\n          text: service,\n          action: service\n        }));\n\n        if (services.length > 5) {\n          quickActions.push({ text: 'Other', action: 'other' });\n        }\n      } else {\n        quickActions = [];\n      }\n    }\n    break;\n\n  case 'waiting_for_service_selection':\n    if (message.toLowerCase() === 'other') {\n      const otherServiceResponses = [\n        `Of course! Please describe the service or procedure you're interested in, and I'll be happy to help you with that.`,\n        `Certainly! Could you please tell me which service or procedure you'd like to schedule?`,\n        `I'd be glad to help with that. Please share which service or procedure you're interested in.`,\n        `Absolutely! May I please know which service or procedure you're looking for?`,\n        `Of course! I'm here to help. Please describe the service or procedure you need.`,\n        `Certainly! Could you please share which service or procedure you'd like to book?`,\n        `I'd be happy to assist with that. Please tell me which service or procedure you're interested in.`,\n        `Absolutely! May I ask which service or procedure you're looking to schedule?`,\n        `Of course! Please let me know which service or procedure you need.`,\n        `Certainly! I'm here to help. Could you please describe the service or procedure you'd like?`\n      ];\n\n      response = getRandomResponse(otherServiceResponses);\n      nextState = 'waiting_for_service_selection';\n      highlightedText = [];\n      quickActions = [];\n    } else {\n      collectedData.procedure = message;\n      collectedData.service = message;\n\n      const insuranceResponses = [\n        `Perfect! I have ${message} noted. Thank you. Now, do you have insurance coverage that you'd like us to bill for this appointment?`,\n        `Excellent! ${message} is recorded. Thank you for that. May I ask if you have health insurance you'd like to use?`,\n        `Thank you! I've got ${message}. Do you have insurance that you'd like us to bill?`,\n        `Great! I have ${message} noted. Thank you. May I ask if you have insurance coverage?`,\n        `Wonderful! ${message} is your selected service. Do you have health insurance you'd like to use for this visit?`,\n        `Perfect! I've recorded ${message}. Thank you. Do you have insurance coverage for this appointment?`,\n        `Excellent! I have ${message}. May I ask if you have health insurance you'd like us to bill?`,\n        `Thank you! ${message} is noted. Do you have insurance that you'd like to use?`,\n        `Great! I've got ${message} recorded. Thank you. May I ask if you have insurance coverage?`,\n        `Wonderful! ${message} is your selected service. Do you have health insurance you'd like us to process?`\n      ];\n\n      response = getRandomResponse(insuranceResponses);\n      nextState = 'waiting_for_insurance';\n      highlightedText = ['insurance'];\n\n      // Insurance provider buttons\n      const insuranceProviders = parseIfString(demoContext.insurance_providers || demoContext.insuranceProviders || []);\n      if (Array.isArray(insuranceProviders) && insuranceProviders.length > 0) {\n        quickActions = insuranceProviders.map(provider => ({\n          text: typeof provider === 'string' ? provider : (provider.name || provider),\n          action: typeof provider === 'string' ? provider : (provider.name || provider)\n        }));\n        quickActions.push({ text: 'No Insurance', action: 'none' });\n      } else {\n        quickActions = [\n          { text: 'Yes', action: 'yes' },\n          { text: 'No', action: 'none' }\n        ];\n      }\n    }\n    break;\n\n  default:\n    response = `Let me help you with your medical information.`;\n    nextState = 'waiting_for_location';\n    break;\n}\n\n// \ud83d\udea8 FIX: Store timestamp as ISO string in variable\nconst currentTimestamp = new Date().toISOString();\n\n// Return response data\nreturn {\n  json: {\n    message: response,\n    currentState: nextState,\n    bookingState: nextState,\n    collectedData: collectedData,\n    bookingData: collectedData,\n    highlightedText: highlightedText,\n    quickActions: quickActions,\n    demoContext: demoContext,\n    timestamp: currentTimestamp,  // \u2705 ISO string (not Date object)\n    module: 'medical-info-collector'\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        368
+      ],
+      "id": "675f29ec-2ae6-408c-9e39-bc74bc7fd140",
+      "name": "Medical Info Collector"
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * APPOINTMENT SCHEDULER MODULE - FIXED VERSION\n * Handles: Insurance, scheduling preferences, slot selection, additional info, confirmation\n *\n * CRITICAL FIXES APPLIED:\n * \u2705 Removed day selection step (goes straight from time preference \u2192 API call)\n * \u2705 Fixed duplicate slot display (buttons only, no numbered list in text)\n * \u2705 Added routedTo field to ALL returns (prevents state reset bug)\n * \u2705 Fixed state naming (generating_appointment_slots to match state manager)\n */\n\n// Get input data\nlet inputData;\ntry {\n  inputData = $input.all();\n} catch (e) {\n  inputData = [{\n    json: {\n      message: '',\n      bookingState: 'waiting_for_insurance',\n      bookingData: {},\n      demoContext: {}\n    }\n  }];\n}\n\nconst item = inputData[0].json;\nconst message = item.message || '';\nconst bookingState = item.bookingState || item.currentState || 'waiting_for_insurance';\nconst bookingData = item.bookingData || item.collectedData || {};\nconst demoContext = item.demoContext || {};\n\nlet response = '';\nlet nextState = bookingState;\nlet collectedData = { ...bookingData };\nlet highlightedText = [];\nlet quickActions = [];\n\nconsole.log('\ud83d\udcc5 APPOINTMENT SCHEDULER:', {\n  bookingState,\n  message,\n  hasAvailableSlots: !!(bookingData.availableSlots || item.collectedData?.availableSlots),\n  slotsCount: (bookingData.availableSlots || item.collectedData?.availableSlots || []).length\n});\n\n// Utility functions\nfunction getRandomResponse(responses) {\n  return responses[Math.floor(Math.random() * responses.length)];\n}\n\nfunction validatePolicyHolderName(input) {\n  const nameMatch = input.match(/^([A-Za-z]+)[\\s]+([A-Za-z]+)$/);\n  return nameMatch !== null;\n}\n\nfunction capitalizeFirstLetter(str) {\n  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();\n}\n\nfunction parseIfString(data) {\n  if (typeof data === 'string') {\n    try {\n      return JSON.parse(data);\n    } catch (e) {\n      console.log('Failed to parse JSON:', e);\n      return {};\n    }\n  }\n  return data;\n}\n\n// STATE HANDLERS\nswitch (bookingState) {\n\n  case 'waiting_for_insurance':\n    if (message.toLowerCase() === 'none' || message.toLowerCase() === 'no insurance' || message.toLowerCase() === 'no') {\n      collectedData.insurance = 'Self-Pay';\n      collectedData.policyHolderName = 'N/A';\n      collectedData.policyNumber = 'N/A';\n      collectedData.groupNumber = 'N/A';\n\n      const urgencyResponses = [\n        `That's perfectly fine. Thank you for letting me know. Now, how soon would you like to be seen for your appointment?`,\n        `No problem at all. I appreciate you sharing that with me. When would you like to schedule your visit?`,\n        `Thank you for that information. May I ask how soon you'd like to come in for your appointment?`,\n        `That's okay. I have that noted. When would be the best time for you to be seen?`,\n        `No worries. Thank you. How quickly would you like to schedule your appointment?`,\n        `That's fine. I appreciate you letting me know. When would you prefer to come in?`,\n        `Thank you for sharing that. May I ask when you'd like to be seen?`,\n        `That's perfectly alright. When would work best for your appointment?`,\n        `No problem. I have that recorded. How soon would you like to schedule your visit?`,\n        `Thank you. I appreciate that information. When would you like to come in for your appointment?`\n      ];\n\n      response = getRandomResponse(urgencyResponses);\n      nextState = 'waiting_for_urgency';\n      highlightedText = ['how soon'];\n      quickActions = [\n        { text: 'As soon as possible', action: 'next_available' },\n        { text: 'Within the next week', action: 'next_week' },\n        { text: 'Within 2 weeks', action: '2_weeks' },\n        { text: 'Next month', action: 'next_month' }\n      ];\n    } else {\n      collectedData.insurance = message;\n\n      const policyHolderResponses = [\n        `Perfect. I have ${message} as your insurance provider. May I please have the policy holder's first name and last name?`,\n        `Thank you. May I please have the policy holder's first name and last name?`,\n        `Great. I have ${message} recorded. Could you please provide the policy holder's first name and last name?`,\n        `Perfect. May I please have the policy holder's first name and last name?`\n      ];\n\n      response = getRandomResponse(policyHolderResponses);\n      nextState = 'waiting_for_policy_holder_name';\n      highlightedText = ['policy holder', 'first name', 'last name'];\n      quickActions = [];\n    }\n    break;\n\n  case 'waiting_for_policy_holder_name':\n    if (validatePolicyHolderName(message)) {\n      const nameMatch = message.match(/^([A-Za-z]+)[\\s]+([A-Za-z]+)$/);\n      collectedData.policyHolderName = `${capitalizeFirstLetter(nameMatch[1])} ${capitalizeFirstLetter(nameMatch[2])}`;\n\n      const policyNumberResponses = [\n        `Perfect. I have the policy holder as ${collectedData.policyHolderName}. May I please have the insurance policy number?`,\n        `Thank you. May I please have your policy number?`,\n        `Great. I have ${collectedData.policyHolderName} noted. Could you please provide the policy number?`,\n        `Perfect. May I please have the insurance policy number?`\n      ];\n\n      response = getRandomResponse(policyNumberResponses);\n      nextState = 'waiting_for_policy_number';\n      highlightedText = ['policy number'];\n      quickActions = [];\n    } else {\n      const nameValidationResponses = [\n        `I want to make sure I have the policy holder's name correct. Could you please provide the first name and last name? For example: John Smith`,\n        `To ensure accuracy, may I please have the policy holder's first name and last name? Example: John Smith`,\n        `I'd like to make certain I get this right. Could you please share the policy holder's first name and last name? For example: John Smith`,\n        `Thank you for your patience. May I please have the policy holder's first name and last name? Example: John Smith`,\n        `To make sure I record this correctly, could you please provide the policy holder's first name and last name? For example: John Smith`,\n        `I want to ensure accuracy. May I please have the policy holder's first name and last name? Example: John Smith`,\n        `Thank you! To continue, could you please share the policy holder's first name and last name? For example: John Smith`,\n        `I appreciate your understanding. May I please have the policy holder's full name? Example: John Smith`,\n        `To make certain I get this right, could you please provide the policy holder's first name and last name? For example: John Smith`,\n        `Thank you for your patience. May I please have the policy holder's first name and last name? Example: John Smith`\n      ];\n\n      response = getRandomResponse(nameValidationResponses);\n      nextState = 'waiting_for_policy_holder_name';\n      highlightedText = ['first name', 'last name'];\n      quickActions = [];\n    }\n    break;\n\n  case 'waiting_for_policy_number':\n    collectedData.policyNumber = message;\n\n    const groupNumberResponses = [\n      `Perfect! I have your policy number. Thank you for that. May I please have your group number? If you don't have one, you can type \"none\" or select N/A.`,\n      `Excellent! Your policy number is recorded. Could you please share your group number? Type \"none\" if not applicable.`,\n      `Thank you! I've got your policy number. May I please have the group number? You can type \"none\" if you don't have one.`,\n      `Great! I have your policy number noted. Could you please provide your group number? Type \"none\" if not applicable.`,\n      `Wonderful! Your policy number is recorded. May I please have the group number? Select N/A if you don't have one.`,\n      `Perfect! I've got your policy number. Thank you. Could you please share your group number? Type \"none\" if not applicable.`,\n      `Excellent! I have your policy number. May I please have your group number? You can type \"none\" if you don't have one.`,\n      `Thank you! Your policy number is noted. Could you please provide your group number? Type \"none\" if not applicable.`,\n      `Great! I've recorded your policy number. May I please have the group number? Select N/A if you don't have one.`,\n      `Wonderful! Your policy number is recorded. Thank you. Could you please share your group number? Type \"none\" if not applicable.`\n    ];\n\n    response = getRandomResponse(groupNumberResponses);\n    nextState = 'waiting_for_group_number';\n    highlightedText = ['group number'];\n    quickActions = [{ text: \"I don't have a Group number\", action: 'none' }];\n    break;\n\n  case 'waiting_for_group_number':\n    collectedData.groupNumber = message.toLowerCase() === 'none' ? 'N/A' : message;\n\n    const urgencyResponses = [\n      `Perfect! I have all your insurance information. Thank you so much. Now, how soon would you like to be seen for your appointment?`,\n      `Excellent! Your insurance details are recorded. Thank you. When would you like to schedule your visit?`,\n      `Thank you! I've got all the insurance information. May I ask how soon you'd like to come in?`,\n      `Great! I have your insurance details noted. When would be the best time for you to be seen?`,\n      `Wonderful! All your insurance information is recorded. How quickly would you like to schedule your appointment?`,\n      `Perfect! I've got all the insurance details. Thank you. When would you prefer to come in?`,\n      `Excellent! I have your insurance information complete. May I ask when you'd like to be seen?`,\n      `Thank you! Your insurance details are all recorded. When would work best for your appointment?`,\n      `Great! I've got all your insurance information. How soon would you like to schedule your visit?`,\n      `Wonderful! All insurance details are recorded. Thank you. When would you like to come in for your appointment?`\n    ];\n\n    response = getRandomResponse(urgencyResponses);\n    nextState = 'waiting_for_urgency';\n    highlightedText = ['how soon'];\n    quickActions = [\n      { text: 'As soon as possible', action: 'next_available' },\n      { text: 'Within the next week', action: 'next_week' },\n      { text: 'Within 2 weeks', action: '2_weeks' },\n      { text: 'Next month', action: 'next_month' }\n    ];\n    break;\n\n  case 'waiting_for_urgency':\n    collectedData.urgency = message;\n\n    const timePreferenceResponses = [\n      `Perfect! I understand your timeframe. Thank you. What time of day works best for you?`,\n      `Excellent! I have your preferred timeframe. When during the day would you prefer to come in?`,\n      `Thank you! I've noted your scheduling preference. What time of day would be most convenient?`,\n      `Great! I have your timeframe recorded. When during the day would work best for you?`,\n      `Wonderful! Your scheduling preference is noted. What time of day would you prefer?`,\n      `Perfect! I've got your timeframe. Thank you. When during the day would be most convenient for you?`,\n      `Excellent! I have your scheduling preference. What time of day works best?`,\n      `Thank you! Your timeframe is recorded. When during the day would you prefer to come in?`,\n      `Great! I've noted your preference. What time of day would be most convenient?`,\n      `Wonderful! Your timeframe is recorded. Thank you. When during the day would work best for you?`\n    ];\n\n    response = getRandomResponse(timePreferenceResponses);\n    nextState = 'waiting_for_time_preference';\n    highlightedText = ['time of day'];\n    quickActions = [\n      { text: 'Morning (6 AM - 12 PM)', action: 'morning' },\n      { text: 'Afternoon (12 PM - 5 PM)', action: 'afternoon' },\n      { text: 'Evening (5 PM - 9 PM)', action: 'evening' },\n      { text: 'Any time', action: 'any' }\n    ];\n    break;\n\n  case 'waiting_for_time_preference':\n    collectedData.timePreference = message;\n\n    // \ud83d\udea8 FIX #1: Skip day selection - go straight to API call\n    console.log('\ud83c\udfe5 Setting up Epic API call with urgency + time preference...');\n\n    // \ud83d\udea8 CRITICAL FIX: Don't return a message here - let EHR Integration Manager handle the response!\n    response = '';\n    nextState = 'calling_epic_api';\n    highlightedText = [];\n    quickActions = [];\n\n    // Set flag to trigger Epic API call\n    // \u2705 FIX: Use STRING instead of boolean to prevent IF node type error\n    collectedData.callEpicAPI = \"true\";\n    collectedData.callEHRIntegration = \"true\"; // STRING for EHR Integration Manager\n    collectedData.epicAPIParams = {\n      urgency: collectedData.urgency,\n      timeOfDay: collectedData.timePreference,\n      serviceType: collectedData.procedure || collectedData.service || 'General Consultation',\n      providerId: collectedData.specialist || 'Dr. Hassan',\n      demoId: demoContext.demoId || item.demoId,\n      patientType: collectedData.patientType || 'new'\n    };\n    collectedData.ehrIntegrationParams = collectedData.epicAPIParams; // Alias for EHR Integration Manager\n    break;\n\n  case 'calling_epic_api':\n    // This state is handled by EHR Integration Manager node\n    // When Epic API returns slots, we display them here\n\n    // \ud83d\udea8 FIX: Check both collectedData and bookingData for slots\n    // ALSO check item.availableSlots (direct from EHR Integration Manager)\n    const realSlots = item.availableSlots || collectedData.availableSlots || bookingData.availableSlots || [];\n\n    console.log('\ud83d\udd0d DEBUG: checking for slots...', {\n      currentState: bookingState,\n      routedFrom: item.routedFrom,\n      itemSlots: item.availableSlots?.length || 0,\n      collectedDataSlots: collectedData.availableSlots?.length || 0,\n      bookingDataSlots: bookingData.availableSlots?.length || 0,\n      totalSlots: realSlots.length\n    });\n\n    // If no slots yet (still calling API), wait for EHR Integration Manager to return\n    if (realSlots.length === 0) {\n      console.log('\u23f3 Waiting for EHR Integration Manager to return slots...');\n      // Don't send a message yet, let EHR Integration Manager handle this\n      response = '';\n      nextState = 'calling_epic_api';\n      highlightedText = [];\n      quickActions = [];\n      break;\n    }\n\n    console.log('\u2705 Received REAL slots from Epic API:', realSlots.length);\n    console.log('\ud83d\udccb First slot structure:', realSlots[0]);\n\n    // \ud83d\udea8 FIX #2: Remove numbered list from response - buttons only!\n    const slotDisplayResponses = [\n      `Perfect! Here are your available appointments:`,\n      `Wonderful! I found these available times for you:`,\n      `Great! Here are your options:`,\n      `Excellent! I have these appointments available:`,\n      `Thank you! Here are the times I found:`\n    ];\n\n    response = getRandomResponse(slotDisplayResponses);\n    nextState = 'generating_appointment_slots'; // Move to slot selection state\n    highlightedText = ['available'];\n\n    // \ud83d\udea8 CRITICAL FIX: Safely access slot properties with fallbacks\n    quickActions = realSlots.map((slot, i) => {\n      // Handle different slot formats\n      const day = slot.day || slot.dayOfWeek || 'TBD';\n      const date = slot.date || slot.displayDate || '';\n      const time = slot.time || slot.displayTime || '';\n\n      console.log(`\ud83d\udcc5 Slot ${i}:`, { day, date, time });\n\n      return {\n        text: `${day}, ${date} at ${time}`,\n        action: `slot_${i}`\n      };\n    });\n\n    // \ud83d\udea8 CRITICAL: Store slots in collectedData for next state\n    collectedData.availableSlots = realSlots;\n\n    // \ud83d\udea8 CRITICAL FIX: Clear the EHR call flags now that we have the slots!\n    collectedData.callEHRIntegration = undefined;\n    collectedData.callEpicAPI = undefined;\n\n    console.log('\ud83c\udfaf CLEARED FLAGS! callEHRIntegration:', collectedData.callEHRIntegration);\n    console.log('\ud83c\udfaf Available slots:', collectedData.availableSlots?.length);\n    break;\n\n  case 'generating_appointment_slots':\n    const slotIndex = parseInt(message.replace('slot_', ''));\n\n    // \ud83d\udea8 CRITICAL FIX: Check if availableSlots exists and has the requested slot\n    console.log('\ud83d\udd0d DEBUG generating_appointment_slots:', {\n      slotIndex,\n      availableSlotsLength: collectedData.availableSlots?.length || 0,\n      bookingDataSlotsLength: bookingData.availableSlots?.length || 0\n    });\n\n    const slots = collectedData.availableSlots || bookingData.availableSlots || [];\n    const selectedSlot = slots[slotIndex];\n\n    // \ud83d\udea8 CRITICAL: If slot doesn't exist, return error\n    if (!selectedSlot) {\n      console.log('\u274c ERROR: No slot found at index', slotIndex);\n      response = 'I apologize, but there was an issue selecting that appointment time. Please call us directly to schedule.';\n      nextState = 'error_slot_selection';\n      highlightedText = [];\n      quickActions = [];\n      break;\n    }\n\n    collectedData.appointmentSlot = selectedSlot;\n\n    // Safe property access with fallbacks\n    const slotDay = selectedSlot.day || selectedSlot.dayOfWeek || 'TBD';\n    const slotDate = selectedSlot.date || selectedSlot.displayDate || '';\n    const slotTime = selectedSlot.time || selectedSlot.displayTime || '';\n\n    console.log('\u2705 Slot selected:', { slotDay, slotDate, slotTime });\n\n    const additionalInfoResponses = [\n      `Excellent. I have ${slotDay}, ${slotDate} at ${slotTime} reserved for you. Before we confirm, is there any additional information you'd like to share?`,\n      `Perfect. I have ${slotDay}, ${slotDate} at ${slotTime} reserved. Is there anything else you'd like us to know before your visit?`,\n      `Great. I have ${slotDay}, ${slotDate} at ${slotTime} reserved. Is there any additional information you'd like to provide?`,\n      `Perfect. I have ${slotDay}, ${slotDate} at ${slotTime} reserved for you. Is there anything else we should know?`\n    ];\n\n    response = getRandomResponse(additionalInfoResponses);\n    nextState = 'waiting_for_additional_info';\n    highlightedText = ['additional information'];\n    quickActions = [\n      { text: 'Yes, I have additional info', action: 'provide_info' },\n      { text: 'No, I\\'m all set', action: 'skip' }\n    ];\n    break;\n\n  case 'waiting_for_additional_info':\n    if (message.toLowerCase() === 'skip' || message.toLowerCase().includes('all set')) {\n      collectedData.additionalNotes = null;\n      nextState = 'showing_summary';\n    } else if (message.toLowerCase() === 'provide_info') {\n      const collectInfoResponses = [\n        `Of course! I'd be happy to note any additional information. Please go ahead and share whatever you'd like us to know.`,\n        `Absolutely! I'm here to help. Please share any additional details, questions, or concerns you have.`,\n        `Certainly! I'd love to hear what additional information you'd like to provide. Please go ahead.`,\n        `Of course! Please feel free to share any additional information that would help us serve you better.`,\n        `Absolutely! I'm listening. Please share any details, concerns, or questions you have.`\n      ];\n\n      response = getRandomResponse(collectInfoResponses);\n      nextState = 'collecting_additional_info';\n      highlightedText = [];\n      quickActions = [];\n      break;\n    } else {\n      collectedData.additionalNotes = message;\n      nextState = 'showing_summary';\n    }\n\n    // Show summary\n    if (nextState === 'showing_summary') {\n      const insuranceSec = collectedData.insurance && collectedData.insurance !== 'Self-Pay' ? `\n  <div style=\"background: rgba(249, 115, 22, 0.08); border-left: 3px solid #f97316; padding: 12px; margin: 12px 0; border-radius: 4px;\">\n    <strong style=\"color: #fb923c; font-size: 14px;\">Insurance:</strong>\n    <ul style=\"margin: 8px 0; padding-left: 20px; color: #e2e8f0;\">\n      <li><strong>Provider:</strong> ${collectedData.insurance}</li>\n      ${collectedData.policyHolderName ? `<li><strong>Policy Holder:</strong> ${collectedData.policyHolderName}</li>` : ''}\n      ${collectedData.policyNumber ? `<li><strong>Policy #:</strong> ${collectedData.policyNumber}</li>` : ''}\n      ${collectedData.groupNumber ? `<li><strong>Group #:</strong> ${collectedData.groupNumber}</li>` : ''}\n    </ul>\n  </div>` : `\n  <div style=\"background: rgba(249, 115, 22, 0.08); border-left: 3px solid #f97316; padding: 12px; margin: 12px 0; border-radius: 4px;\">\n    <strong style=\"color: #fb923c; font-size: 14px;\">Payment:</strong>\n    <p style=\"margin: 8px 0; color: #e2e8f0;\">Self-Pay</p>\n  </div>`;\n\n      const additionalSec = collectedData.additionalNotes ? `\n  <div style=\"background: rgba(249, 115, 22, 0.08); border-left: 3px solid #f97316; padding: 12px; margin: 12px 0; border-radius: 4px;\">\n    <strong style=\"color: #fb923c; font-size: 14px;\">Additional Information:</strong>\n    <p style=\"margin: 8px 0; color: #e2e8f0; font-size: 13px;\">${collectedData.additionalNotes}</p>\n  </div>` : '';\n\n      response = `\n<div style=\"line-height: 1.6;\">\n  <p style=\"margin-bottom: 16px;\"><strong>Thank you! Please review your appointment details:</strong></p>\n\n  <div style=\"background: rgba(249, 115, 22, 0.08); border-left: 3px solid #f97316; padding: 12px; margin: 12px 0; border-radius: 4px;\">\n    <strong style=\"color: #fb923c; font-size: 14px;\">Patient Information:</strong>\n    <ul style=\"margin: 8px 0; padding-left: 20px; color: #e2e8f0;\">\n      <li><strong>Name:</strong> ${collectedData.firstName} ${collectedData.lastName}</li>\n      <li><strong>Date of Birth:</strong> ${collectedData.dateOfBirth || collectedData.dob}</li>\n      <li><strong>Phone:</strong> ${collectedData.phoneNumber || collectedData.phone}</li>\n      <li><strong>Email:</strong> ${collectedData.email}</li>\n    </ul>\n  </div>\n\n  <div style=\"background: rgba(249, 115, 22, 0.08); border-left: 3px solid #f97316; padding: 12px; margin: 12px 0; border-radius: 4px;\">\n    <strong style=\"color: #fb923c; font-size: 14px;\">Appointment Details:</strong>\n    <ul style=\"margin: 8px 0; padding-left: 20px; color: #e2e8f0;\">\n      <li><strong>Date & Time:</strong> ${collectedData.appointmentSlot.dayOfWeek || collectedData.appointmentSlot.day}, ${(() => {\n        const dateStr = collectedData.appointmentSlot.date;\n        if (!dateStr) return 'Date TBD';\n        // Convert YYYY-MM-DD to MM/DD/YYYY\n        if (dateStr.includes('-')) {\n          const [year, month, day] = dateStr.split('-');\n          return \\`\\${month}/\\${day}/\\${year}\\`;\n        }\n        return dateStr;\n      })()} at ${collectedData.appointmentSlot.time}</li>\n      <li><strong>Location:</strong> ${collectedData.location}</li>\n      <li><strong>Service:</strong> ${collectedData.procedure || collectedData.service}</li>\n      <li><strong>Pain Level:</strong> ${collectedData.painLevel}/10</li>\n      <li><strong>Symptoms:</strong> ${collectedData.symptoms}</li>\n    </ul>\n  </div>\n\n  ${insuranceSec}\n  ${additionalSec}\n\n  <div style=\"background: rgba(34, 197, 94, 0.08); border-left: 3px solid #22c55e; padding: 12px; margin: 16px 0; border-radius: 4px;\">\n    <strong style=\"color: #4ade80; font-size: 13px;\">\ud83d\udcf1 Consent:</strong>\n    <p style=\"margin: 8px 0; font-size: 12px; color: #cbd5e1; line-height: 1.6;\">\n      By confirming, you consent to be contacted via phone, SMS, and email for appointment confirmation, reminders, and follow-up care.\n    </p>\n  </div>\n\n  <p style=\"margin-top: 16px;\">Is all the information correct?</p>\n</div>`.trim();\n\n      nextState = 'waiting_for_review_confirmation';\n      highlightedText = [];\n      quickActions = [\n        { text: 'Confirm & Book', action: 'confirm' },\n        { text: 'Change something', action: 'change' }\n      ];\n    }\n    break;\n\n  case 'collecting_additional_info':\n    collectedData.additionalNotes = message;\n    nextState = 'showing_summary';\n\n    const insuranceSec2 = collectedData.insurance && collectedData.insurance !== 'Self-Pay' ? `\n  <div style=\"background: rgba(249, 115, 22, 0.08); border-left: 3px solid #f97316; padding: 12px; margin: 12px 0; border-radius: 4px;\">\n    <strong style=\"color: #fb923c; font-size: 14px;\">Insurance:</strong>\n    <ul style=\"margin: 8px 0; padding-left: 20px; color: #e2e8f0;\">\n      <li><strong>Provider:</strong> ${collectedData.insurance}</li>\n      ${collectedData.policyHolderName ? `<li><strong>Policy Holder:</strong> ${collectedData.policyHolderName}</li>` : ''}\n      ${collectedData.policyNumber ? `<li><strong>Policy #:</strong> ${collectedData.policyNumber}</li>` : ''}\n      ${collectedData.groupNumber ? `<li><strong>Group #:</strong> ${collectedData.groupNumber}</li>` : ''}\n    </ul>\n  </div>` : `\n  <div style=\"background: rgba(249, 115, 22, 0.08); border-left: 3px solid #f97316; padding: 12px; margin: 12px 0; border-radius: 4px;\">\n    <strong style=\"color: #fb923c; font-size: 14px;\">Payment:</strong>\n    <p style=\"margin: 8px 0; color: #e2e8f0;\">Self-Pay</p>\n  </div>`;\n\n    const additionalSec2 = collectedData.additionalNotes ? `\n  <div style=\"background: rgba(249, 115, 22, 0.08); border-left: 3px solid #f97316; padding: 12px; margin: 12px 0; border-radius: 4px;\">\n    <strong style=\"color: #fb923c; font-size: 14px;\">Additional Information:</strong>\n    <p style=\"margin: 8px 0; color: #e2e8f0; font-size: 13px;\">${collectedData.additionalNotes}</p>\n  </div>` : '';\n\n    response = `\n<div style=\"line-height: 1.6;\">\n  <p style=\"margin-bottom: 16px;\"><strong>Thank you! Please review your appointment details:</strong></p>\n\n  <div style=\"background: rgba(249, 115, 22, 0.08); border-left: 3px solid #f97316; padding: 12px; margin: 12px 0; border-radius: 4px;\">\n    <strong style=\"color: #fb923c; font-size: 14px;\">Patient Information:</strong>\n    <ul style=\"margin: 8px 0; padding-left: 20px; color: #e2e8f0;\">\n      <li><strong>Name:</strong> ${collectedData.firstName} ${collectedData.lastName}</li>\n      <li><strong>Date of Birth:</strong> ${collectedData.dateOfBirth || collectedData.dob}</li>\n      <li><strong>Phone:</strong> ${collectedData.phoneNumber || collectedData.phone}</li>\n      <li><strong>Email:</strong> ${collectedData.email}</li>\n    </ul>\n  </div>\n\n  <div style=\"background: rgba(249, 115, 22, 0.08); border-left: 3px solid #f97316; padding: 12px; margin: 12px 0; border-radius: 4px;\">\n    <strong style=\"color: #fb923c; font-size: 14px;\">Appointment Details:</strong>\n    <ul style=\"margin: 8px 0; padding-left: 20px; color: #e2e8f0;\">\n      <li><strong>Date & Time:</strong> ${collectedData.appointmentSlot.dayOfWeek || collectedData.appointmentSlot.day}, ${(() => {\n        const dateStr = collectedData.appointmentSlot.date;\n        if (!dateStr) return 'Date TBD';\n        // Convert YYYY-MM-DD to MM/DD/YYYY\n        if (dateStr.includes('-')) {\n          const [year, month, day] = dateStr.split('-');\n          return \\`\\${month}/\\${day}/\\${year}\\`;\n        }\n        return dateStr;\n      })()} at ${collectedData.appointmentSlot.time}</li>\n      <li><strong>Location:</strong> ${collectedData.location}</li>\n      <li><strong>Service:</strong> ${collectedData.procedure || collectedData.service}</li>\n      <li><strong>Pain Level:</strong> ${collectedData.painLevel}/10</li>\n      <li><strong>Symptoms:</strong> ${collectedData.symptoms}</li>\n    </ul>\n  </div>\n\n  ${insuranceSec2}\n  ${additionalSec2}\n\n  <div style=\"background: rgba(34, 197, 94, 0.08); border-left: 3px solid #22c55e; padding: 12px; margin: 16px 0; border-radius: 4px;\">\n    <strong style=\"color: #4ade80; font-size: 13px;\">\ud83d\udcf1 Consent:</strong>\n    <p style=\"margin: 8px 0; font-size: 12px; color: #cbd5e1; line-height: 1.6;\">\n      By confirming, you consent to be contacted via phone, SMS, and email for appointment confirmation, reminders, and follow-up care.\n    </p>\n  </div>\n\n  <p style=\"margin-top: 16px;\">Is all the information correct?</p>\n</div>`.trim();\n\n    nextState = 'waiting_for_review_confirmation';\n    highlightedText = [];\n    quickActions = [\n      { text: 'Confirm & Book', action: 'confirm' },\n      { text: 'Change something', action: 'change' }\n    ];\n    break;\n\n  case 'waiting_for_review_confirmation':\n    if (message.toLowerCase().includes('confirm')) {\n      const confirmationResponses = [\n        `Perfect! Your appointment is confirmed!\\n\\n\u2705 Date: ${collectedData.appointmentSlot.day}, ${collectedData.appointmentSlot.date}\\n\u23f0 Time: ${collectedData.appointmentSlot.time}\\n\ud83d\udccd Location: ${collectedData.location}\\n\\n\ud83d\udce7 A confirmation email has been sent to ${collectedData.email}\\n\ud83d\udcf1 You'll receive SMS reminders before your appointment\\n\\nWe look forward to seeing you! If you need to make any changes, please call us.`,\n        `Wonderful! Your appointment is all set!\\n\\n\u2705 ${collectedData.appointmentSlot.day}, ${collectedData.appointmentSlot.date} at ${collectedData.appointmentSlot.time}\\n\ud83d\udccd ${collectedData.location}\\n\\n\ud83d\udce7 Confirmation sent to ${collectedData.email}\\n\\nThank you for choosing us for your care. We're here to help you feel better!`,\n        `Excellent! Your appointment has been confirmed!\\n\\nDate: ${collectedData.appointmentSlot.day}, ${collectedData.appointmentSlot.date}\\nTime: ${collectedData.appointmentSlot.time}\\nLocation: ${collectedData.location}\\n\\nConfirmation email sent to ${collectedData.email}\\n\\nWe're looking forward to seeing you and helping you with your care!`\n      ];\n\n      response = getRandomResponse(confirmationResponses);\n      nextState = 'appointment_confirmed';\n      highlightedText = [];\n      quickActions = [];\n    } else {\n      const changeResponses = [\n        `Of course! I'd be happy to help you make changes. What would you like to update?`,\n        `No problem at all. What information would you like to change?`,\n        `Absolutely! I'm here to help. What would you like to modify?`,\n        `Certainly! What would you like to update in your appointment?`,\n        `Of course! I'm happy to make changes. What would you like to adjust?`\n      ];\n\n      response = getRandomResponse(changeResponses);\n      nextState = 'handling_changes';\n      highlightedText = [];\n      quickActions = [];\n    }\n    break;\n\n  default:\n    response = `Let me help you schedule your appointment. Do you have insurance coverage?`;\n    nextState = 'waiting_for_insurance';\n    break;\n}\n\n// \ud83d\udea8 FIX #4: Add routedTo field to ALL returns!\n// \u2705 CRITICAL FIX: Route to merge in these cases:\n// 1. When callEHRIntegration flag is set (need to call EHR API)\n// 2. When message came FROM ehr-integration-manager (need to display slots to user)\n// 3. When we have a response to show (not empty string)\n// \ud83d\udea8 CRITICAL FIX: When flags are set, DON'T route to merge - let Check EHR Call IF node handle it!\nconst shouldRouteToMerge =\n    (item.routedFrom === 'ehr-integration-manager' && response !== '') ||\n    (nextState !== 'calling_epic_api' && nextState !== 'waiting_for_time_preference' && response !== '');\n\nconsole.log('\ud83d\udd0d FINAL CHECK:', {\n  callEHRIntegration: collectedData.callEHRIntegration,\n  callEpicAPI: collectedData.callEpicAPI,\n  routedFrom: item.routedFrom,\n  hasResponse: response !== '',\n  nextState: nextState,\n  shouldRouteToMerge: shouldRouteToMerge,\n  hasSlots: !!collectedData.availableSlots,\n  slotsCount: collectedData.availableSlots?.length || 0\n});\n\n// \ud83d\udea8 CRITICAL DEBUG: Log the EXACT data being returned for Check EHR Call IF node\nconst returnData = {\n  json: {\n    message: response,\n    currentState: nextState,\n    bookingState: nextState,\n    collectedData: collectedData,\n    bookingData: collectedData,\n    highlightedText: highlightedText,\n    quickActions: quickActions,\n    demoContext: demoContext,\n    routedTo: shouldRouteToMerge ? 'merge' : 'appointment-scheduler', // \u2705 Route to merge when needed!\n    timestamp: new Date().toISOString(),\n    module: 'appointment-scheduler'\n  },\n  pairedItem: 0  // \u2705 CRITICAL: Link output to input item for N8N data flow\n};\n\nconsole.log('\ud83d\udea8\ud83d\udea8\ud83d\udea8 APPOINTMENT SCHEDULER RETURN DATA:');\nconsole.log('  - collectedData.callEHRIntegration:', returnData.json.collectedData.callEHRIntegration);\nconsole.log('  - collectedData.callEpicAPI:', returnData.json.collectedData.callEpicAPI);\nconsole.log('  - currentState:', returnData.json.currentState);\nconsole.log('  - message length:', returnData.json.message.length);\nconsole.log('  - quickActions count:', returnData.json.quickActions.length);\nconsole.log('  - routedTo:', returnData.json.routedTo);\n\nreturn returnData;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        672
+      ],
+      "id": "505facfc-a884-4635-a4a6-daa6b895b662",
+      "name": "Appointment Scheduler"
+    },
+    {
+      "parameters": {
+        "jsCode": "/**\n * EHR INTEGRATION MANAGER MODULE - FINAL FIXED VERSION\n * Handles: All EHR system integrations (Epic, Cerner, Allscripts, etc.)\n * Purpose: Fetch appointment slots from EHR systems\n * Returns: Standardized slot format for all EHR systems\n *\n * \ud83d\udd27 FIX #1: Now respects Google Business Hours (Mon-Fri only, no Sat/Sun)\n * \ud83d\udd27 FIX #2: NO DateTime objects - all dates converted to ISO strings immediately\n * CRITICAL: N8N cannot serialize Date/DateTime objects - must use strings only!\n */\n\n// Get input data with fallback for testing\nlet inputData;\ntry {\n  inputData = $input.all();\n} catch (e) {\n  inputData = [{\n    json: {\n      callEHRIntegration: true,\n      ehrIntegrationParams: {\n        datePreference: 'Monday',\n        timeOfDay: 'afternoon',\n        urgency: 'next_available',\n        specialty: 'Sports Medicine',\n        practitionerId: 'Dr. Hassan'\n      },\n      collectedData: {},\n      demoContext: {}\n    }\n  }];\n}\n\nconst item = inputData[0].json;\nconst shouldCallEHR = item.callEHRIntegration || item.callEpicAPI || false;\nconst ehrParams = item.ehrIntegrationParams || item.epicAPIParams || {};\nconst collectedData = item.collectedData || {};\nconst demoContext = item.demoContext || {};\n\nconsole.log('\ud83c\udfe5 EHR INTEGRATION MANAGER:', { shouldCallEHR, ehrParams });\n\n// Determine which EHR system to use\nfunction detectEHRSystem(demoContext) {\n  // Check demo metadata for EHR system\n  const ehrSystem = demoContext.ehrSystem || demoContext.metadata?.ehr_system;\n\n  if (ehrSystem) {\n    return ehrSystem.toLowerCase();\n  }\n\n  // Default to Epic for healthcare demos\n  if (demoContext.companyIndustry === 'Healthcare' || demoContext.industry === 'healthcare') {\n    return 'epic';\n  }\n\n  return 'none';\n}\n\n// Call Epic FHIR API\nasync function callEpicAPI(params) {\n  console.log('\ud83d\udcde Calling Epic FHIR API at gateway IP...');\n\n  try {\n    // \ud83d\udea8 CRITICAL FIX: Use Docker gateway IP to reach host machine from container\n    // Gateway IP found via: docker network inspect n8n_default | grep Gateway\n    const apiUrl = 'http://172.18.0.1:3002/api/v1/epic/appointments/search';\n    const response = await fetch(apiUrl, {\n      method: 'POST',\n      headers: {\n        'Content-Type': 'application/json'\n      },\n      body: JSON.stringify({\n        patientType: params.patientType || 'new',\n        urgency: params.urgency,\n        timePreference: params.timeOfDay,\n        serviceType: params.serviceType || params.specialty,\n        providerId: params.providerId || params.practitionerId,\n        demoId: params.demoId || demoContext.demoId\n      })\n    });\n\n    if (response.ok) {\n      const data = await response.json();\n      console.log('\u2705 Epic API response received:', data);\n\n      if (data.slots && data.slots.length > 0) {\n        // Format Epic slots to standardized format\n        return data.slots.map(slot => ({\n          day: slot.dayOfWeek,\n          date: slot.displayDate,\n          time: slot.displayTime,\n          fullDateTime: `${slot.dayOfWeek}, ${slot.displayDate} at ${slot.displayTime}`,\n          start: slot.start,\n          end: slot.end,\n          practitioner: slot.provider,\n          location: slot.location,\n          appointmentType: slot.serviceType,\n          id: slot.id,\n          source: 'epic'\n        }));\n      }\n    }\n\n    throw new Error('Epic API returned no slots');\n  } catch (error) {\n    console.log('\u26a0\ufe0f Epic API failed:', error.message);\n    throw error;\n  }\n}\n\n// Placeholder for Cerner integration\nasync function callCernerAPI(params) {\n  console.log('\ud83d\udcde Calling Cerner API...');\n  // TODO: Implement Cerner FHIR integration\n  throw new Error('Cerner integration not yet implemented');\n}\n\n// Placeholder for Allscripts integration\nasync function callAllscriptsAPI(params) {\n  console.log('\ud83d\udcde Calling Allscripts API...');\n  // TODO: Implement Allscripts integration\n  throw new Error('Allscripts integration not yet implemented');\n}\n\n// \ud83d\udd27 NEW: Get closed days from Google hours\nfunction getClosedDays(demoContext) {\n  console.log('\ud83d\udcc5 Checking Google hours for closed days...');\n\n  const closedDays = new Set();\n\n  // Get Google hours from demo context (populated by Google Places API)\n  const googleHours = demoContext.locations?.[0]?.google_hours?.periods || [];\n\n  if (googleHours.length === 0) {\n    console.log('\u26a0\ufe0f No Google hours found, defaulting to weekends closed');\n    closedDays.add(0); // Sunday\n    closedDays.add(6); // Saturday\n    return closedDays;\n  }\n\n  // Google hours format: periods array with { open: { day: 1, time: '0900' }, close: { day: 1, time: '1700' } }\n  // day: 0=Sunday, 1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Friday, 6=Saturday\n\n  const allDays = [0, 1, 2, 3, 4, 5, 6];\n  const openDaysArray = googleHours.map(period => period.open?.day).filter(d => d !== undefined);\n\n  allDays.forEach(day => {\n    if (!openDaysArray.includes(day)) {\n      closedDays.add(day);\n      console.log(`   \u274c Day ${day} is CLOSED`);\n    } else {\n      console.log(`   \u2705 Day ${day} is OPEN`);\n    }\n  });\n\n  console.log(`\ud83d\udcca Closed days: ${Array.from(closedDays).join(', ')}`);\n  return closedDays;\n}\n\n// \ud83d\udd27 FIXED: Generate fallback slots respecting business hours\nfunction generateFallbackSlots(params, demoContext) {\n  console.log('\ud83d\udd04 Generating fallback slots with business hours check...');\n\n  const closedDays = getClosedDays(demoContext);\n  const slots = [];\n  const today = new Date();\n\n  const daysToAdd = params.urgency === 'next_available' ? 1 :\n                    params.urgency === 'next_week' ? 7 :\n                    params.urgency === '2_weeks' ? 14 : 5;\n\n  let daysChecked = 0;\n  let currentDay = daysToAdd;\n\n  // Generate 3 slots, but SKIP closed days\n  while (slots.length < 3 && daysChecked < 30) {\n    const slotDate = new Date(today);\n    slotDate.setDate(today.getDate() + currentDay);\n\n    const dayOfWeek = slotDate.getDay(); // 0=Sunday, 6=Saturday\n\n    // \ud83d\udea8 CRITICAL FIX: Skip if business is closed on this day\n    if (closedDays.has(dayOfWeek)) {\n      console.log(`   \u23ed\ufe0f Skipping ${slotDate.toLocaleDateString('en-US', { weekday: 'long' })} - business is CLOSED`);\n      currentDay++;\n      daysChecked++;\n      continue;\n    }\n\n    // Determine time based on preference\n    let hour = 14;\n    if (params.timeOfDay === 'morning') {\n      hour = 9 + (slots.length * 1); // 9 AM, 10 AM, 11 AM\n    } else if (params.timeOfDay === 'afternoon') {\n      hour = 14 + slots.length; // 2 PM, 3 PM, 4 PM\n    } else if (params.timeOfDay === 'evening') {\n      hour = 17 + slots.length; // 5 PM, 6 PM, 7 PM\n    } else {\n      // 'any' or 'anytime' - mix of times\n      const times = [9, 14, 16];\n      hour = times[slots.length % times.length];\n    }\n\n    slotDate.setHours(hour, 0, 0, 0);\n\n    const dayName = slotDate.toLocaleDateString('en-US', { weekday: 'long' });\n    const dateStr = slotDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });\n    const timeStr = slotDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });\n\n    console.log(`   \u2705 Generated slot ${slots.length + 1}: ${dayName}, ${dateStr} at ${timeStr}`);\n\n    // \ud83d\udea8 CRITICAL: All fields must be STRINGS - NO Date objects or N8N will crash!\n    slots.push({\n      day: dayName,\n      date: dateStr,\n      time: timeStr,\n      fullDateTime: `${dayName}, ${dateStr} at ${timeStr}`,\n      // \u2705 Convert to ISO strings immediately - NO Date objects\n      start: slotDate.toISOString(),\n      end: new Date(slotDate.getTime() + 30 * 60000).toISOString(),\n      practitioner: params.practitionerId || params.providerId || 'Provider',\n      location: demoContext.locations?.[0]?.city || 'Main Office',\n      appointmentType: params.specialty || params.serviceType || 'Consultation',\n      id: `fallback-slot-${slots.length + 1}`,\n      source: 'fallback'\n    });\n\n    currentDay++;\n    daysChecked++;\n  }\n\n  console.log(`\u2705 Generated ${slots.length} fallback slots (all on open days)`);\n  return slots;\n}\n\n// Main EHR integration logic\nasync function getAppointmentSlots() {\n  if (!shouldCallEHR) {\n    console.log('\u23ed\ufe0f Skipping EHR integration (not requested)');\n    return [];\n  }\n\n  const ehrSystem = detectEHRSystem(demoContext);\n  console.log(`\ud83c\udfaf Detected EHR system: ${ehrSystem}`);\n\n  try {\n    let slots = [];\n\n    switch (ehrSystem) {\n      case 'epic':\n        slots = await callEpicAPI(ehrParams);\n        break;\n\n      case 'cerner':\n        slots = await callCernerAPI(ehrParams);\n        break;\n\n      case 'allscripts':\n        slots = await callAllscriptsAPI(ehrParams);\n        break;\n\n      case 'none':\n      default:\n        console.log('\u26a0\ufe0f No EHR system configured, using fallback with business hours');\n        slots = generateFallbackSlots(ehrParams, demoContext);\n        break;\n    }\n\n    return slots;\n\n  } catch (error) {\n    console.log('\u26a0\ufe0f EHR integration failed, using fallback with business hours:', error.message);\n    return generateFallbackSlots(ehrParams, demoContext);\n  }\n}\n\n// Execute EHR integration\nconst slots = await getAppointmentSlots();\n\nconsole.log(`\u2705 EHR Integration Manager returning ${slots.length} slots`);\nif (slots.length > 0) {\n  console.log('\ud83d\udccb Slots generated:');\n  slots.forEach((slot, i) => {\n    console.log(`   ${i + 1}. ${slot.day}, ${slot.date} at ${slot.time} (source: ${slot.source})`);\n  });\n}\n\n// Generate response message and quick actions for slot selection\nconst slotResponses = [\n  `Perfect! Here are your available appointments:`,\n  `Wonderful! I found these available times for you:`,\n  `Great! Here are your options:`,\n  `Excellent! I have these appointments available:`,\n  `Thank you! Here are the times I found:`\n];\nconst randomResponse = slotResponses[Math.floor(Math.random() * slotResponses.length)];\n\nconst quickActions = slots.map((slot, i) => ({\n  text: `${slot.day}, ${slot.date} at ${slot.time}`,\n  action: `slot_${i}`\n}));\n\nconsole.log(`\ud83d\udccb Generated ${quickActions.length} quick action buttons for slot selection`);\nconsole.log('\ud83d\udccb Quick actions:', JSON.stringify(quickActions, null, 2));\nconsole.log('\ud83d\udccb Slots:', JSON.stringify(slots, null, 2));\n\n// \ud83d\udea8 CRITICAL: Return data - ALL fields must be primitives (string/number/boolean/array/object)\n// NEVER return Date or DateTime objects or N8N will crash!\n// \ud83d\udea8 CRITICAL: Must include pairedItem for N8N item linking!\nreturn {\n  json: {\n    message: randomResponse,  // \u2705 Return the message directly\n    currentState: 'generating_appointment_slots',  // \u2705 Slots are ready for selection\n    bookingState: 'generating_appointment_slots',\n    collectedData: {\n      ...collectedData,\n      availableSlots: slots,  // \u2705 Slots are string-only objects\n      callEHRIntegration: undefined,  // \u2705 Clear the flag to prevent re-triggering\n      callEpicAPI: undefined  // \u2705 Clear the flag\n    },\n    bookingData: {\n      ...collectedData,\n      availableSlots: slots,\n      callEHRIntegration: undefined,\n      callEpicAPI: undefined\n    },\n    highlightedText: ['available'],\n    quickActions: quickActions,  // \u2705 Return quick actions directly\n    demoContext: demoContext,\n    routedTo: 'complete',  // \ud83d\udea8 CRITICAL FIX: Route to complete (Merge Responses) to end workflow!\n    routedFrom: 'ehr-integration-manager',\n    // \u2705 CRITICAL FIX: Convert Date to ISO string - NO Date objects returned!\n    timestamp: new Date().toISOString(),\n    module: 'ehr-integration-manager',\n    ehrSystem: detectEHRSystem(demoContext),\n    slotsReturned: slots.length,\n    slotSource: slots.length > 0 ? slots[0].source : 'none'\n  },\n  pairedItem: 0  // \u2705 CRITICAL: Link output to input item for N8N data flow\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1520,
+        656
+      ],
+      "id": "e60d72c6-202f-40bb-8cbc-164da00e9682",
+      "name": "EHR Integration Manager"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "45142012-7fa6-4f3f-ac92-5c882e5b5203",
+              "leftValue": "={{ $json.collectedData.callEHRIntegration }}",
+              "rightValue": "\"true\"",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1216,
+        672
+      ],
+      "id": "eb8fe8eb-b2a7-4ee6-a55d-8e938c1e3e13",
+      "name": "Check EHR Call"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.routedTo }}",
+                    "rightValue": "patient-info",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "6a74907d-0c47-44db-ad93-9477b07c0f61"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Patient Info"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "44a23a7f-4875-45a4-995e-2682fc5d9b4e",
+                    "leftValue": "={{ $json.routedTo }}",
+                    "rightValue": "contact-info",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Contact Info"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "49d586c2-c879-4dc1-8a87-5e7d9aae6eaf",
+                    "leftValue": "={{ $json.routedTo }}",
+                    "rightValue": "complete",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Complete"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "34f485d9-1e28-4357-b8a0-f1a3f1950034",
+                    "leftValue": "={{ $json.routedTo }}",
+                    "rightValue": "medical-info",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Medical Info"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "143cd992-37dc-41be-b3bc-05f4d4ad202f",
+                    "leftValue": "={{ $json.routedTo }}",
+                    "rightValue": "appointment-scheduler",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Appointment Scheduler"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "2a87dfc6-be22-48bd-819e-ff738458aaf5",
+                    "leftValue": "={{ $json.routedTo }}",
+                    "rightValue": "display-appointment-slots",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Display Appointment Slots"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        720,
+        240
+      ],
+      "id": "48a929bb-0f9a-4c72-ab6f-c8e8cbd0fc6a",
+      "name": "Module Router"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get input data\n  const inputData = $input.all();\n  const item = inputData[0].json;\n\n  console.log('\ud83d\udcc5 DISPLAY APPOINTMENT SLOTS:', {\n    hasSlots: !!(item.availableSlots || item.collectedData?.availableSlots),\n    slotsCount: (item.availableSlots || item.collectedData?.availableSlots ||\n  []).length,\n    hasMessage: !!item.message,\n    hasQuickActions: !!(item.quickActions && item.quickActions.length > 0)\n  });\n\n  // Just pass everything through to the chat\n  return {\n    json: {\n      ...item,\n      routedTo: 'merge',\n      timestamp: new Date().toISOString(),\n      module: 'display-appointment-slots'\n    },\n    pairedItem: 0\n  };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        512
+      ],
+      "id": "ea412ef8-9210-4ad6-888c-d9c6b02a4acc",
+      "name": "Display Appointment Slots"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Context Preserver Node\n// Purpose: Preserve pausedBookingState and pausedBookingData that gets lost\n// when passing through \"Message a model\" LangChain AI node\n//\n// Position in workflow: AFTER \"Message a model\" and BEFORE \"Healthcare Question Detector\"\n\nconst items = $input.all();\nconst llmOutput = items[0].json;\n\n// \ud83d\udea8 CRITICAL FIX: Get paused state from Healthcare Concierge Prompt Builder's CURRENT execution\n// The \"Message a model\" node strips all fields except the LLM response\n// But we can retrieve the original data from the Prompt Builder node in THIS execution\nconst promptBuilderData = $('Healthcare Concierge Prompt Builder').first().json;\n\nconsole.log('\ud83d\udd17 Context Preserver - Restoring lost context data');\nconsole.log('\ud83d\udce5 LLM Output Keys:', Object.keys(llmOutput));\nconsole.log('\ud83d\udce6 Prompt Builder Keys:', Object.keys(promptBuilderData));\nconsole.log('\u23f8\ufe0f  Paused Booking State:', promptBuilderData.pausedBookingState);\nconsole.log('\ud83d\udccb Paused Booking Data:', promptBuilderData.pausedBookingData ? Object.keys(promptBuilderData.pausedBookingData) : 'none');\n\n// Extract message from LLM output (handle different response formats)\nlet message = '';\nif (llmOutput.content && Array.isArray(llmOutput.content) && llmOutput.content.length > 0) {\n  // LangChain format: content array with text objects\n  message = llmOutput.content[0].text || '';\n} else if (llmOutput.message) {\n  message = llmOutput.message;\n} else if (llmOutput.text) {\n  message = llmOutput.text;\n} else if (llmOutput.output) {\n  message = llmOutput.output;\n}\n\nconsole.log('\ud83d\udcac Extracted Message Length:', message.length);\n\n// Combine LLM output with the preserved context data\nreturn items.map((item, index) => ({\n  json: {\n    // Keep the LLM's message response\n    message: message,\n\n    // Restore the paused state data from Prompt Builder\n    pausedBookingState: promptBuilderData.pausedBookingState || null,\n    pausedBookingData: promptBuilderData.pausedBookingData || null,\n\n    // Restore other important context from Prompt Builder\n    demoContext: promptBuilderData.demoContext || {},\n    userMessage: promptBuilderData.userMessage || '',\n\n    // Pass through content array if it exists\n    content: llmOutput.content || null\n  },\n  pairedItem: index\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1552,
+        896
+      ],
+      "id": "0e54f7f9-9424-4837-bb93-13f1b14feacf",
+      "name": "Context Preserver"
+    }
+  ],
+  "pinData": {
+    "Chat Webhook": [
+      {
+        "json": {
+          "isArtificialRecoveredEventItem": true
+        }
+      }
+    ]
+  },
+  "connections": {
+    "If Operation": {
+      "main": [
+        [
+          {
+            "node": "Demo Creation Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "State-Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shared Context Storage": {
+      "main": [
+        [
+          {
+            "node": "If Operation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chat Handler": {
+      "main": [
+        [
+          {
+            "node": "Intent Detector",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Demo Creation Handler": {
+      "main": [
+        [
+          {
+            "node": "Shared Context Storage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chat Webhook": {
+      "main": [
+        [
+          {
+            "node": "Chat Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Demo Creation Webhook": {
+      "main": [
+        [
+          {
+            "node": "Demo Creation Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Intent Detector": {
+      "main": [
+        [
+          {
+            "node": "Route by Intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Healthcare Concierge Prompt Builder": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Intent": {
+      "main": [
+        [
+          {
+            "node": "Shared Context Storage",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Healthcare Concierge Prompt Builder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Healthcare Question Detector": {
+      "main": [
+        [
+          {
+            "node": "Merge Responses",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Responses": {
+      "main": [
+        [
+          {
+            "node": "Chat Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Context Preserver",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "State-Router": {
+      "main": [
+        [
+          {
+            "node": "Module Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Patient Info Collector": {
+      "main": [
+        [
+          {
+            "node": "Merge Responses",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contact Info Collector": {
+      "main": [
+        [
+          {
+            "node": "Merge Responses",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Medical Info Collector": {
+      "main": [
+        [
+          {
+            "node": "Merge Responses",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Appointment Scheduler": {
+      "main": [
+        [
+          {
+            "node": "Check EHR Call",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check EHR Call": {
+      "main": [
+        [
+          {
+            "node": "EHR Integration Manager",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge Responses",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "EHR Integration Manager": {
+      "main": [
+        [
+          {
+            "node": "Module Router",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Module Router": {
+      "main": [
+        [
+          {
+            "node": "Patient Info Collector",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Contact Info Collector",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge Responses",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Medical Info Collector",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Appointment Scheduler",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Display Appointment Slots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Display Appointment Slots": {
+      "main": [
+        [
+          {
+            "node": "Merge Responses",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Context Preserver": {
+      "main": [
+        [
+          {
+            "node": "Healthcare Question Detector",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "54385fd4-c997-4bda-be1e-693fd2f3ec97",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "0b866e307e6a4f240c367a4a6210bf8b819e3975ef3294a7f01ee90473610c7e"
+  },
+  "id": "JPy4mivY76VlZQ9s",
+  "tags": [
+    {
+      "createdAt": "2025-10-22T02:08:20.685Z",
+      "updatedAt": "2025-10-22T02:08:20.685Z",
+      "id": "7rAQm9aO1fgr3dq2",
+      "name": "Universal Demo"
+    },
+    {
+      "createdAt": "2025-10-22T02:08:20.607Z",
+      "updatedAt": "2025-10-22T02:08:20.607Z",
+      "id": "93mn4TqVTYQ3QNJN",
+      "name": "Healthcare Demo"
+    },
+    {
+      "createdAt": "2025-10-22T02:08:20.578Z",
+      "updatedAt": "2025-10-22T02:08:20.578Z",
+      "id": "JOvBz7FStXmyk7q0",
+      "name": "Dynamic Context"
+    },
+    {
+      "createdAt": "2025-10-22T02:08:20.629Z",
+      "updatedAt": "2025-10-22T02:08:20.629Z",
+      "id": "LZhYTUHVBFPMhbKm",
+      "name": "White Label"
+    },
+    {
+      "createdAt": "2025-10-22T02:08:20.616Z",
+      "updatedAt": "2025-10-22T02:08:20.616Z",
+      "id": "NYkpltcEUbqyovqV",
+      "name": "Healthcare"
+    },
+    {
+      "createdAt": "2025-10-22T02:08:20.644Z",
+      "updatedAt": "2025-10-22T02:08:20.644Z",
+      "id": "QQDzuVOVwISrTVvH",
+      "name": "Sports Medicine"
+    },
+    {
+      "createdAt": "2025-10-22T02:08:20.661Z",
+      "updatedAt": "2025-10-22T02:08:20.661Z",
+      "id": "uYCwFD0Bj44eBpSW",
+      "name": "Pain Management"
+    }
+  ]
+}
