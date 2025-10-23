@@ -32,7 +32,7 @@ const isQuestion = questionKeywords.some(keyword => {
 
 // Handle Resume Booking request
 if (message === 'resume_booking' || message === 'resume booking') {
-  console.log('🔄 RESUME BOOKING');
+  console.log('🔄 RESUME BOOKING - Restoring state:', pausedBookingState);
   const nodeEndTime = Date.now();
   console.log(`⏱️ [INTENT DETECTOR] Completed in ${nodeEndTime - nodeStartTime}ms`);
   return [{
@@ -40,8 +40,12 @@ if (message === 'resume_booking' || message === 'resume booking') {
       ...input,
       intent: 'booking',
       route: 'booking',
-      pausedBookingState: pausedBookingState,
-      pausedBookingData: pausedBookingData
+      bookingState: pausedBookingState || 'initial',  // 🚨 RESTORE THE SAVED STATE
+      currentState: pausedBookingState || 'initial',   // 🚨 RESTORE THE SAVED STATE
+      bookingData: pausedBookingData || {},            // 🚨 RESTORE THE SAVED DATA
+      collectedData: pausedBookingData || {},          // 🚨 RESTORE THE SAVED DATA
+      pausedBookingState: null,  // Clear paused state after resuming
+      pausedBookingData: null    // Clear paused data after resuming
     }
   }];
 }
